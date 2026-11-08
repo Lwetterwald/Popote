@@ -1,0 +1,2343 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F7F3EA">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Popote">
+<meta name="format-detection" content="telephone=no">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" type="image/png" href="icon.png">
+<title>Popote – les repas du foyer</title>
+<style>
+:root{
+  --fond:#F7F3EA; --carte:#FFFFFF; --encre:#26251F; --doux:#6B675C; --ligne:#E4DDCD;
+  --vert:#4F6B3A; --vert-clair:#E6EEDC; --terre:#B85A33; --terre-clair:#F8E4D9;
+  --jaune:#E9B949; --jaune-clair:#FBF0D3; --rouge:#B23A2E;
+  --r:14px; --ombre:0 1px 3px rgba(40,35,20,.10),0 4px 14px rgba(40,35,20,.06);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--fond);color:var(--encre)}
+body{font:19px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  padding-bottom:calc(84px + env(safe-area-inset-bottom));}
+button,input,select,textarea{font:inherit;color:inherit}
+h1,h2,h3{margin:0;line-height:1.2}
+h2{font-size:24px;margin-bottom:12px}
+h3{font-size:17px;text-transform:uppercase;letter-spacing:.06em;color:var(--doux);margin:22px 4px 8px}
+
+/* En-tête */
+.entete{position:sticky;top:0;z-index:20;background:var(--fond);padding:calc(10px + env(safe-area-inset-top)) 18px 8px;
+  display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--ligne)}
+.entete h1{font-size:28px;color:var(--vert);font-weight:800;letter-spacing:-.01em}
+.entete .sous{color:var(--doux);font-size:16px}
+main{max-width:980px;margin:0 auto;padding:14px 14px 30px}
+
+/* Onglets */
+.onglets{position:fixed;left:0;right:0;bottom:0;z-index:30;background:#FFFDF8;border-top:1px solid var(--ligne);
+  display:flex;justify-content:space-around;padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+.onglets button{flex:1;border:0;background:none;padding:6px 2px;border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:2px;
+  font-size:14px;color:var(--doux);min-height:60px;cursor:pointer}
+.onglets button .ico{font-size:25px;line-height:1}
+.onglets button.on{color:var(--vert);background:var(--vert-clair);font-weight:700}
+
+/* Boutons */
+.btn{border:1.5px solid var(--ligne);background:var(--carte);border-radius:12px;padding:10px 16px;min-height:48px;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;font-weight:600}
+.btn:active{transform:scale(.98)}
+.btn.pri{background:var(--vert);border-color:var(--vert);color:#fff}
+.btn.terre{background:var(--terre);border-color:var(--terre);color:#fff}
+.btn.ic{width:48px;padding:0;font-size:20px}
+.btn.del{border-color:transparent;background:transparent;color:var(--doux)}
+.btn.large{width:100%;font-size:20px;min-height:56px}
+.btn.petit{min-height:40px;padding:6px 12px;font-size:16px}
+.btn[disabled]{opacity:.45}
+.lien{border:0;background:none;padding:0;color:var(--vert);font-weight:600;text-align:left;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
+.actions.fin{justify-content:flex-end;margin-top:20px}
+.barre{display:flex;align-items:center;gap:10px}
+.barre .titre-sem{flex:1;text-align:center;font-weight:700;font-size:20px}
+
+/* Cartes */
+.carte{background:var(--carte);border-radius:var(--r);box-shadow:var(--ombre);padding:16px;margin:12px 0}
+.muted{color:var(--doux)} .petit{font-size:16px} .centre{text-align:center}
+.lbl{font-weight:700;margin-bottom:8px}
+.alerte{background:var(--terre-clair);border-radius:12px;padding:12px 14px;margin:10px 0;font-size:17px}
+.info{background:var(--vert-clair);border-radius:12px;padding:12px 14px;margin:10px 0;font-size:17px}
+
+/* Menus */
+.jour{background:var(--carte);border-radius:var(--r);box-shadow:var(--ombre);padding:12px;margin:12px 0}
+.jour.auj{outline:3px solid var(--vert)}
+.jour-tete{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:2px 4px 10px}
+.jour-nom{font-weight:800;font-size:20px}
+.pastille{background:var(--jaune-clair);border-radius:999px;padding:3px 10px;font-size:15px;font-weight:600}
+.slots{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:620px){.slots{grid-template-columns:1fr}}
+.slot{text-align:left;border:1.5px solid var(--ligne);border-radius:12px;background:#FFFEFB;padding:10px 12px;min-height:92px;cursor:pointer;display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch;width:100%}
+.slot.fait{background:var(--vert-clair);border-color:#C7D6B5}
+.slot-tete{display:flex;gap:10px;align-items:center;font-size:15px;color:var(--doux);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.slot-tete .nb{font-weight:600;text-transform:none;letter-spacing:0}
+.slot-tete .ok{margin-left:auto;color:var(--vert);text-transform:none;letter-spacing:0}
+.slot .vide{color:var(--doux);font-style:italic;padding:6px 0}
+.plat{padding:2px 0;font-weight:600}
+.plat .cat-entree,.plat .cat-dessert{font-weight:500;color:#4a473f}
+.plat .cat-entree::before{content:"Entrée · ";color:var(--doux);font-weight:400}
+.plat .cat-dessert::before{content:"Dessert · ";color:var(--doux);font-weight:400}
+.pts-ligne{margin-top:6px;font-size:15px;color:var(--doux)}
+.pts-ligne b{color:var(--vert)}
+
+/* Badges */
+.badge{display:inline-block;border-radius:999px;padding:2px 10px;font-size:15px;font-weight:700;background:var(--vert-clair);color:var(--vert);white-space:nowrap}
+.badge.o{background:var(--jaune-clair);color:#8a6510}
+.badge.r{background:var(--terre-clair);color:var(--rouge)}
+.badge.g{background:#EEEAE0;color:#55524a}
+.badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+
+/* Chips */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1.5px solid var(--ligne);background:#fff;border-radius:999px;padding:8px 16px;min-height:44px;cursor:pointer;font-weight:600}
+.chip.on{background:var(--vert);border-color:var(--vert);color:#fff}
+.defil{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+.defil .chip{flex:0 0 auto}
+
+/* Listes */
+.rec{display:flex;align-items:center;gap:12px;background:var(--carte);border-radius:12px;box-shadow:var(--ombre);padding:12px 14px;margin:8px 0;cursor:pointer;width:100%;text-align:left;border:0}
+.rec .t{flex:1;font-weight:700}
+.rec .t small{display:block;font-weight:400;color:var(--doux);font-size:15px;margin-top:2px}
+.etoile{color:var(--jaune);font-size:20px}
+
+/* Courses */
+.article{display:flex;align-items:center;gap:14px;width:100%;text-align:left;border:0;background:var(--carte);padding:12px 12px;border-bottom:1px solid var(--ligne);cursor:pointer;min-height:58px}
+.groupe{background:var(--carte);border-radius:var(--r);box-shadow:var(--ombre);overflow:hidden}
+.groupe .article:last-child{border-bottom:0}
+.case{flex:0 0 32px;height:32px;border:2.5px solid var(--vert);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:20px}
+.article.coche .case{background:var(--vert)}
+.article.coche .art-nom{text-decoration:line-through;color:var(--doux)}
+.art-nom{flex:1;font-weight:600}
+.art-qte{color:var(--doux);font-size:17px;text-align:right}
+.art-x{flex:0 0 auto}
+.ligne-dates{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+
+/* Formulaires */
+input[type=text],input[type=number],input[type=date],input[type=search],select,textarea{border:1.5px solid var(--ligne);border-radius:10px;padding:10px 12px;background:#fff;min-height:48px;max-width:100%}
+textarea{width:100%;min-height:150px}
+input:focus,select:focus,textarea:focus{outline:3px solid #B9CDA5;border-color:var(--vert)}
+.champ{display:flex;flex-direction:column;gap:6px;margin:10px 0}
+.champ>span{font-weight:600;font-size:17px}
+.grille2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grille3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media (max-width:620px){.grille3{grid-template-columns:1fr 1fr}}
+.switch{display:flex;align-items:center;gap:12px;padding:10px 0;font-size:18px;cursor:pointer}
+.switch input{width:26px;height:26px;accent-color:var(--vert);flex:0 0 auto}
+.ligne{display:flex;align-items:center;gap:10px;margin:10px 0}
+.recherche{width:100%;font-size:19px}
+.ing-ligne{display:grid;grid-template-columns:1fr 110px 48px;gap:8px;margin:8px 0;align-items:center}
+.ing-ligne .u{font-size:15px;color:var(--doux)}
+
+/* Points */
+.compteur{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.compteur .gros{font-size:56px;font-weight:800;line-height:1;color:var(--vert)}
+.compteur .gros.neg{color:var(--rouge)}
+.jauge{height:16px;background:#EEEAE0;border-radius:999px;overflow:hidden;margin:14px 0 6px}
+.jauge>div{height:100%;background:var(--vert);border-radius:999px}
+.jauge.trop>div{background:var(--terre)}
+.ligne-pts{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--ligne)}
+.ligne-pts:last-child{border-bottom:0}
+.ligne-pts .t{flex:1}
+.mini{display:grid;grid-template-columns:90px 1fr 70px;gap:10px;align-items:center;margin:6px 0;font-size:16px}
+.mini .barre-m{height:12px;background:#EEEAE0;border-radius:999px;overflow:hidden}
+.mini .barre-m>div{height:100%;background:var(--vert)}
+.mini .barre-m.trop>div{background:var(--terre)}
+
+/* Nutrition */
+.nutri{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+@media (max-width:620px){.nutri{grid-template-columns:repeat(2,1fr)}}
+.nutri div{background:#FAF7F0;border-radius:10px;padding:8px 10px}
+.nutri b{display:block;font-size:22px}
+.nutri span{font-size:14px;color:var(--doux)}
+ol.etapes{padding-left:26px} ol.etapes li{margin:8px 0}
+ul.ingr{list-style:none;padding:0;margin:0}
+ul.ingr li{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px dashed var(--ligne)}
+ul.ingr li span:last-child{color:var(--doux);text-align:right}
+
+/* Fenêtre modale */
+#voile{position:fixed;inset:0;background:rgba(30,28,20,.45);z-index:50;display:none;align-items:flex-end;justify-content:center}
+#voile.ouvert{display:flex}
+#fenetre{background:var(--fond);width:100%;max-width:760px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;
+  padding:20px 18px calc(24px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch;position:relative}
+@media (min-width:700px){#voile{align-items:center}#fenetre{border-radius:20px;max-height:88vh}}
+.fermer-x{position:absolute;top:12px;right:12px}
+.sec{background:var(--carte);border-radius:12px;padding:12px 14px;margin:10px 0;box-shadow:var(--ombre)}
+.item-menu{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--ligne)}
+.item-menu:last-of-type{border-bottom:0}
+.item-menu .lien{flex:1}
+
+#toast{position:fixed;left:50%;bottom:calc(100px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#2b2a26;color:#fff;
+  padding:12px 20px;border-radius:12px;z-index:80;font-size:17px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90vw;text-align:center}
+#toast.vu{opacity:1}
+
+/* Impression (gros caractères) */
+#impression{display:none}
+@media print{
+  @page{margin:10mm 8mm}
+  body{padding:0;background:#fff}
+  .entete,.onglets,main,#voile,#toast,#bandeau{display:none!important}
+  #impression{display:block;font-size:20pt;line-height:1.35;color:#000}
+  #impression h1{font-size:26pt;margin:0 0 6mm}
+  #impression h2{font-size:18pt;margin:7mm 0 2mm;text-transform:uppercase;border-bottom:2px solid #000}
+  #impression .l{display:flex;gap:5mm;align-items:center;padding:2.5mm 0;border-bottom:1px solid #999;break-inside:avoid}
+  #impression .c{width:8mm;height:8mm;border:2px solid #000;flex:0 0 auto}
+  #impression .q{margin-left:auto;font-size:17pt}
+  #impression .notes{margin-top:8mm}
+  #impression .notes div{border-bottom:1px solid #999;height:13mm}
+}
+/* Champs dans les grilles : ne jamais déborder sur petit écran */
+.ing-ligne>*,.grille2>*,.grille3>*{min-width:0}
+.ing-ligne input,.ing-ligne select,.grille2 input,.grille2 select,.grille3 input,.champ input,.champ select{width:100%;min-width:0}
+html,body{overflow-x:hidden}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+@supports (height:100dvh){#fenetre{max-height:92dvh}@media (min-width:700px){#fenetre{max-height:88dvh}}}
+/* iPhone en paysage : encoches sur les côtés */
+.entete,main{padding-left:max(14px,env(safe-area-inset-left));padding-right:max(14px,env(safe-area-inset-right))}
+.onglets{padding-left:max(4px,env(safe-area-inset-left));padding-right:max(4px,env(safe-area-inset-right))}
+.a-faire{color:#9a4a1f!important;font-weight:600}
+.st-ctl{display:flex;align-items:center;gap:10px;margin-left:auto}
+.ligne-dates label{display:flex;align-items:center;gap:8px;flex:1 1 170px}
+.ligne-dates label input{flex:1;min-width:0}
+
+/* ===== Petit écran (iPhone) ===== */
+@media (max-width:480px){
+  body{font-size:18px}
+  h2{font-size:22px;padding-right:44px}
+  .entete h1{font-size:25px}
+  .entete .sous{font-size:15px}
+  main{padding-top:10px;padding-left:max(10px,env(safe-area-inset-left));padding-right:max(10px,env(safe-area-inset-right))}
+  .onglets button{font-size:12px;min-height:56px;padding:5px 0;border-radius:10px}
+  .onglets button .ico{font-size:23px}
+  .carte,.jour{padding:12px}
+  .btn{padding:10px 12px}
+  .actions{gap:8px}
+  .actions .btn{flex:1 1 auto}
+  .grille2{grid-template-columns:1fr}
+  .titre-sem{font-size:18px}
+  .ing-ligne{grid-template-columns:1fr 84px 44px}
+  .nutri b{font-size:20px}
+  .article.st{flex-wrap:wrap;row-gap:6px}
+  .article.st .art-nom{flex:1 1 150px}
+  .st-ctl{gap:8px}
+  #fenetre{padding:18px 14px calc(22px + env(safe-area-inset-bottom))}
+  .rec{padding:12px}
+}
+
+/* ===== Scanner de codes-barres ===== */
+#scanner{position:fixed;inset:0;z-index:45;background:#151513;color:#fff;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top)}
+#scanner[hidden]{display:none}
+.sc-haut{display:flex;align-items:center;gap:10px;padding:8px 12px 8px 16px}
+.sc-titre{flex:1;font-weight:800;font-size:20px}
+.sc-x{background:transparent;border-color:rgba(255,255,255,.35);color:#fff}
+.sc-video{position:relative;flex:0 0 auto;height:min(50vh,460px);background:#000;overflow:hidden}
+.sc-video video{width:100%;height:100%;object-fit:cover;display:block}
+.sc-cadre{position:absolute;left:7%;right:7%;top:28%;height:44%;border:3px solid rgba(255,255,255,.95);border-radius:16px;box-shadow:0 0 0 3000px rgba(0,0,0,.30);transition:border-color .12s,box-shadow .12s}
+.sc-cadre.ok{border-color:#86E05F;box-shadow:0 0 0 3000px rgba(40,120,30,.40)}
+.sc-laser{position:absolute;left:5%;right:5%;top:50%;height:2px;background:#FF5A45;opacity:.85}
+.sc-msg{position:absolute;left:0;right:0;bottom:8px;text-align:center;font-size:17px;font-weight:600;padding:0 14px;text-shadow:0 1px 4px #000}
+.sc-liste{flex:1;min-height:0;overflow:auto;background:var(--fond);color:var(--encre);padding:4px 12px;-webkit-overflow-scrolling:touch}
+.sc-art{display:flex;align-items:center;gap:10px;padding:8px 6px;border-bottom:1px solid var(--ligne)}
+.sc-art.neuf{background:var(--vert-clair);border-radius:10px}
+.sc-n{min-width:34px;font-weight:800;color:var(--vert);font-size:19px}
+.sc-t{flex:1;font-weight:700;font-size:17px;min-width:0;overflow-wrap:anywhere}
+.sc-t small{display:block;font-weight:400;color:var(--doux);font-size:15px}
+.sc-vide{color:var(--doux);text-align:center;padding:14px 8px;font-size:17px}
+.sc-bas{display:flex;gap:10px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:var(--fond);color:var(--encre);border-top:1px solid var(--ligne)}
+.sc-bas .btn{flex:1;min-height:54px;font-size:18px}
+
+</style>
+</head>
+<body>
+<header class="entete"><h1>Popote</h1><span class="sous" id="sous"></span></header>
+<div id="bandeau"></div>
+<main id="main"></main>
+<nav class="onglets" id="onglets"></nav>
+<div id="scanner" hidden></div>
+<div id="voile"><div id="fenetre" role="dialog" aria-modal="true"></div></div>
+<div id="toast" role="status"></div>
+<div id="impression"></div>
+<datalist id="dl-ingr"></datalist>
+<datalist id="dl-rec"></datalist>
+<script>
+/* ===== Base d'aliments =====
+   Valeurs pour 100 g (ou 100 ml), aliments crus, ordres de grandeur type table Ciqual (ANSES).
+   n = [kcal, protéines g, acides gras saturés g, sucres g, fibres g, cholestérol mg]
+   r = rayon ; u = unité d'achat ('g', 'ml', 'pc') ; pc = poids d'une pièce (g) ; ul = nom de l'unité
+   z = 1 : fruit ou légume « zéro point » (si l'option est activée) */
+const RAYONS = {
+  fl: 'Fruits & légumes',
+  bv: 'Boucherie – volaille',
+  po: 'Poissonnerie',
+  cr: 'Crèmerie – œufs',
+  bo: 'Boulangerie',
+  ep: 'Épicerie',
+  pl: 'Placard (à vérifier)',
+  dv: 'Divers'
+};
+const RAYON_ORDRE = ['fl', 'bv', 'po', 'cr', 'bo', 'ep', 'pl', 'dv'];
+
+const INGR_BASE = [
+  // --- Légumes ---
+  { id: 'tomate', nom: 'Tomate', r: 'fl', n: [19, 0.9, 0.04, 2.6, 1.2, 0], u: 'pc', pc: 120, z: 1 },
+  { id: 'tomcerise', nom: 'Tomates cerises', r: 'fl', n: [22, 1.0, 0.04, 3.0, 1.4, 0], u: 'g', z: 1 },
+  { id: 'courgette', nom: 'Courgette', r: 'fl', n: [16, 1.2, 0.07, 1.7, 1.1, 0], u: 'pc', pc: 250, z: 1 },
+  { id: 'aubergine', nom: 'Aubergine', r: 'fl', n: [20, 1.0, 0.04, 2.6, 2.5, 0], u: 'pc', pc: 300, z: 1 },
+  { id: 'poivron', nom: 'Poivron', r: 'fl', n: [31, 1.0, 0.05, 4.2, 2.1, 0], u: 'pc', pc: 180, z: 1 },
+  { id: 'oignon', nom: 'Oignon', r: 'fl', n: [36, 1.2, 0.04, 5.5, 1.6, 0], u: 'pc', pc: 100, z: 1 },
+  { id: 'echalote', nom: 'Échalote', r: 'fl', n: [72, 2.5, 0.02, 7.0, 3.2, 0], u: 'pc', pc: 25, z: 1 },
+  { id: 'ail', nom: 'Ail', r: 'fl', n: [133, 6.4, 0.09, 1.0, 2.1, 0], u: 'pc', pc: 5, ul: 'gousse', z: 1 },
+  { id: 'carotte', nom: 'Carotte', r: 'fl', n: [36, 0.8, 0.04, 6.0, 2.7, 0], u: 'pc', pc: 100, z: 1 },
+  { id: 'poireau', nom: 'Poireau', r: 'fl', n: [31, 1.5, 0.04, 3.4, 2.5, 0], u: 'pc', pc: 200, z: 1 },
+  { id: 'brocoli', nom: 'Brocoli', r: 'fl', n: [34, 3.0, 0.04, 1.7, 2.6, 0], u: 'g', z: 1 },
+  { id: 'choufleur', nom: 'Chou-fleur', r: 'fl', n: [25, 1.9, 0.07, 2.2, 2.0, 0], u: 'g', z: 1 },
+  { id: 'chouvert', nom: 'Chou vert', r: 'fl', n: [28, 1.6, 0.04, 3.0, 2.5, 0], u: 'g', z: 1 },
+  { id: 'harvert', nom: 'Haricots verts', r: 'fl', n: [30, 1.8, 0.05, 2.5, 3.0, 0], u: 'g', z: 1 },
+  { id: 'epinard', nom: 'Épinards frais', r: 'fl', n: [21, 2.9, 0.06, 0.4, 2.2, 0], u: 'g', z: 1 },
+  { id: 'champi', nom: 'Champignons de Paris', r: 'fl', n: [22, 3.1, 0.05, 0.6, 1.0, 0], u: 'g', z: 1 },
+  { id: 'salade', nom: 'Salade verte', r: 'fl', n: [15, 1.2, 0.02, 1.4, 1.3, 0], u: 'pc', pc: 300, ul: 'salade', z: 1 },
+  { id: 'concombre', nom: 'Concombre', r: 'fl', n: [13, 0.6, 0.03, 1.7, 0.7, 0], u: 'pc', pc: 300, z: 1 },
+  { id: 'fenouil', nom: 'Fenouil', r: 'fl', n: [22, 1.2, 0.02, 2.9, 2.6, 0], u: 'pc', pc: 250, z: 1 },
+  { id: 'celeri', nom: 'Céleri branche', r: 'fl', n: [16, 0.7, 0.04, 1.8, 1.6, 0], u: 'g', z: 1 },
+  { id: 'celerirave', nom: 'Céleri-rave', r: 'fl', n: [30, 1.2, 0.05, 2.0, 4.0, 0], u: 'g', z: 1 },
+  { id: 'butternut', nom: 'Courge butternut / potiron', r: 'fl', n: [40, 1.0, 0.05, 4.2, 2.0, 0], u: 'g', z: 1 },
+  { id: 'navet', nom: 'Navet', r: 'fl', n: [21, 0.9, 0.01, 3.5, 2.0, 0], u: 'pc', pc: 120, z: 1 },
+  { id: 'betterave', nom: 'Betterave cuite', r: 'fl', n: [47, 1.7, 0.02, 8.0, 2.0, 0], u: 'g', z: 1 },
+  { id: 'radis', nom: 'Radis', r: 'fl', n: [16, 0.7, 0.01, 1.9, 1.6, 0], u: 'g', z: 1 },
+  { id: 'asperge', nom: 'Asperges', r: 'fl', n: [20, 2.2, 0.04, 1.9, 2.1, 0], u: 'g', z: 1 },
+  { id: 'gingembre', nom: 'Gingembre frais', r: 'fl', n: [80, 1.8, 0.2, 1.7, 2.0, 0], u: 'g', z: 1 },
+  { id: 'ppois', nom: 'Petits pois', r: 'fl', n: [81, 5.4, 0.07, 5.7, 5.7, 0], u: 'g' },
+  { id: 'pdt', nom: 'Pommes de terre', r: 'fl', n: [80, 2.0, 0.03, 0.7, 1.6, 0], u: 'g' },
+  { id: 'patatedouce', nom: 'Patate douce', r: 'fl', n: [86, 1.6, 0.02, 4.2, 3.0, 0], u: 'g' },
+  { id: 'avocat', nom: 'Avocat', r: 'fl', n: [205, 1.9, 2.6, 0.7, 4.9, 0], u: 'pc', pc: 150 },
+  // --- Herbes fraîches ---
+  { id: 'persil', nom: 'Persil', r: 'fl', n: [43, 3.0, 0.1, 0.9, 3.3, 0], u: 'pc', pc: 40, ul: 'botte', z: 1 },
+  { id: 'coriandre', nom: 'Coriandre', r: 'fl', n: [23, 2.1, 0.01, 0.9, 2.8, 0], u: 'pc', pc: 40, ul: 'botte', z: 1 },
+  { id: 'basilic', nom: 'Basilic', r: 'fl', n: [23, 3.2, 0.04, 0.3, 1.6, 0], u: 'pc', pc: 30, ul: 'botte', z: 1 },
+  { id: 'ciboulette', nom: 'Ciboulette', r: 'fl', n: [30, 3.3, 0.1, 1.9, 2.5, 0], u: 'pc', pc: 30, ul: 'botte', z: 1 },
+  { id: 'menthe', nom: 'Menthe', r: 'fl', n: [44, 3.8, 0.2, 0.5, 6.8, 0], u: 'pc', pc: 30, ul: 'botte', z: 1 },
+  { id: 'aneth', nom: 'Aneth', r: 'fl', n: [43, 3.5, 0.1, 0.5, 2.1, 0], u: 'pc', pc: 30, ul: 'botte', z: 1 },
+  // --- Fruits ---
+  { id: 'pomme', nom: 'Pomme', r: 'fl', n: [53, 0.3, 0.03, 11.6, 1.4, 0], u: 'pc', pc: 150, z: 1 },
+  { id: 'poire', nom: 'Poire', r: 'fl', n: [53, 0.4, 0.02, 10.0, 3.1, 0], u: 'pc', pc: 160, z: 1 },
+  { id: 'banane', nom: 'Banane', r: 'fl', n: [90, 1.1, 0.1, 15.0, 2.0, 0], u: 'pc', pc: 120, z: 1 },
+  { id: 'orange', nom: 'Orange', r: 'fl', n: [46, 0.9, 0.02, 8.5, 2.0, 0], u: 'pc', pc: 150, z: 1 },
+  { id: 'clementine', nom: 'Clémentine', r: 'fl', n: [47, 0.8, 0.04, 9.2, 1.7, 0], u: 'pc', pc: 70, z: 1 },
+  { id: 'citron', nom: 'Citron', r: 'fl', n: [30, 0.7, 0.04, 2.5, 1.7, 0], u: 'pc', pc: 100, z: 1 },
+  { id: 'kiwi', nom: 'Kiwi', r: 'fl', n: [58, 1.0, 0.03, 10.0, 3.0, 0], u: 'pc', pc: 80, z: 1 },
+  { id: 'fraise', nom: 'Fraises', r: 'fl', n: [33, 0.7, 0.02, 6.0, 2.0, 0], u: 'g', z: 1 },
+  { id: 'fruitsrouges', nom: 'Fruits rouges (frais ou surgelés)', r: 'fl', n: [49, 1.2, 0.02, 4.4, 6.7, 0], u: 'g', z: 1 },
+  { id: 'abricot', nom: 'Abricot', r: 'fl', n: [45, 0.9, 0.03, 9.2, 2.0, 0], u: 'pc', pc: 45, z: 1 },
+  { id: 'peche', nom: 'Pêche', r: 'fl', n: [40, 0.8, 0.03, 8.5, 1.4, 0], u: 'pc', pc: 150, z: 1 },
+  // --- Boucherie / volaille ---
+  { id: 'pouletfilet', nom: 'Blanc de poulet', r: 'bv', n: [110, 23.5, 0.5, 0, 0, 62] , u: 'g' },
+  { id: 'pouletcuisse', nom: 'Haut de cuisse de poulet sans peau', r: 'bv', n: [125, 19.5, 1.4, 0, 0, 90], u: 'g' },
+  { id: 'dinde', nom: 'Escalope de dinde', r: 'bv', n: [105, 24.0, 0.3, 0, 0, 55], u: 'g' },
+  { id: 'veau', nom: 'Escalope de veau', r: 'bv', n: [110, 22.0, 0.8, 0, 0, 70], u: 'g' },
+  { id: 'porcfilet', nom: 'Filet mignon de porc', r: 'bv', n: [125, 22.0, 1.2, 0, 0, 65], u: 'g' },
+  { id: 'boeufmijoter', nom: 'Bœuf maigre à mijoter (gîte, macreuse)', r: 'bv', n: [125, 21.5, 1.6, 0, 0, 60], u: 'g' },
+  { id: 'boeufhache', nom: 'Bœuf haché 5 % MG', r: 'bv', n: [125, 21.0, 2.2, 0, 0, 65], u: 'g' },
+  // --- Poissonnerie ---
+  { id: 'poissonblanc', nom: 'Poisson blanc (cabillaud, lieu…)', r: 'po', n: [77, 17.8, 0.1, 0, 0, 45], u: 'g' },
+  { id: 'saumon', nom: 'Pavé de saumon', r: 'po', n: [200, 20.0, 2.5, 0, 0, 55], u: 'g' },
+  { id: 'truite', nom: 'Filet de truite', r: 'po', n: [140, 20.0, 1.4, 0, 0, 55], u: 'g' },
+  { id: 'maquereau', nom: 'Filet de maquereau frais', r: 'po', n: [180, 18.5, 2.9, 0, 0, 70], u: 'g' },
+  { id: 'sardine', nom: 'Sardines fraîches (vidées)', r: 'po', n: [135, 20.0, 1.6, 0, 0, 60], u: 'g' },
+  { id: 'crevette', nom: 'Crevettes crues décortiquées', r: 'po', n: [85, 18.5, 0.15, 0, 0, 160], u: 'g' },
+  { id: 'moules', nom: 'Moules (avec coquilles)', r: 'po', n: [21, 3.0, 0.1, 0, 0, 8], u: 'g' },
+  // --- Crèmerie / œufs ---
+  { id: 'oeuf', nom: 'Œufs', r: 'cr', n: [135, 12.5, 2.8, 0.3, 0, 370], u: 'pc', pc: 55, ul: '' },
+  { id: 'blancoeuf', nom: "Blanc d'œuf", r: 'cr', n: [48, 10.8, 0, 0.7, 0, 0], u: 'g' },
+  { id: 'yaourt0', nom: 'Yaourt nature 0 %', r: 'cr', n: [45, 4.5, 0.06, 5.5, 0, 2], u: 'pc', pc: 125, ul: 'pot' },
+  { id: 'fblanc0', nom: 'Fromage blanc 0 %', r: 'cr', n: [46, 7.5, 0.07, 4.0, 0, 1], u: 'g' },
+  { id: 'skyr', nom: 'Skyr nature', r: 'cr', n: [60, 10.5, 0.1, 3.5, 0, 3], u: 'g' },
+  { id: 'lait', nom: 'Lait demi-écrémé', r: 'cr', n: [46, 3.3, 1.0, 4.8, 0, 7], u: 'ml' },
+  { id: 'parmesan', nom: 'Parmesan', r: 'cr', n: [390, 33.0, 17.0, 0, 0, 90], u: 'g' },
+  { id: 'feta', nom: 'Feta', r: 'cr', n: [260, 15.0, 14.0, 0.5, 0, 80], u: 'g' },
+  { id: 'chevrefrais', nom: 'Chèvre frais', r: 'cr', n: [190, 12.0, 10.0, 2.5, 0, 45], u: 'g' },
+  { id: 'comte', nom: 'Comté', r: 'cr', n: [410, 28.0, 20.0, 0, 0, 100], u: 'g' },
+  { id: 'mozza', nom: 'Mozzarella', r: 'cr', n: [240, 18.0, 12.5, 1.0, 0, 50], u: 'g' },
+  { id: 'creme15', nom: 'Crème fraîche légère 15 %', r: 'cr', n: [160, 2.8, 10.0, 3.5, 0, 45], u: 'ml' },
+  { id: 'beurre', nom: 'Beurre', r: 'cr', n: [745, 0.7, 54.0, 0.6, 0, 215], u: 'g' },
+  // --- Boulangerie ---
+  { id: 'paincomplet', nom: 'Pain complet', r: 'bo', n: [245, 9.5, 0.4, 2.4, 7.0, 0], u: 'g' },
+  { id: 'painlevain', nom: 'Pain de campagne au levain', r: 'bo', n: [250, 8.5, 0.3, 1.5, 4.0, 0], u: 'g' },
+  // --- Épicerie ---
+  { id: 'rizbasmati', nom: 'Riz basmati', r: 'ep', n: [352, 8.0, 0.15, 0.3, 1.3, 0], u: 'g' },
+  { id: 'rizcomplet', nom: 'Riz complet', r: 'ep', n: [355, 7.5, 0.5, 0.8, 3.5, 0], u: 'g' },
+  { id: 'patescompl', nom: 'Pâtes complètes', r: 'ep', n: [341, 13.0, 0.4, 3.0, 8.0, 0], u: 'g' },
+  { id: 'pates', nom: 'Pâtes', r: 'ep', n: [357, 12.5, 0.3, 3.0, 3.0, 0], u: 'g' },
+  { id: 'semoule', nom: 'Semoule complète', r: 'ep', n: [350, 12.0, 0.3, 1.0, 6.0, 0], u: 'g' },
+  { id: 'quinoa', nom: 'Quinoa', r: 'ep', n: [368, 14.0, 0.7, 1.0, 7.0, 0], u: 'g' },
+  { id: 'boulgour', nom: 'Boulgour', r: 'ep', n: [345, 12.0, 0.3, 0.4, 12.0, 0], u: 'g' },
+  { id: 'avoine', nom: "Flocons d'avoine", r: 'ep', n: [372, 13.5, 1.3, 1.0, 10.0, 0], u: 'g' },
+  { id: 'farine', nom: 'Farine de blé', r: 'ep', n: [350, 10.0, 0.2, 1.5, 3.0, 0], u: 'g' },
+  { id: 'farinecompl', nom: 'Farine complète', r: 'ep', n: [330, 12.0, 0.3, 0.6, 10.0, 0], u: 'g' },
+  { id: 'lentilles', nom: 'Lentilles vertes', r: 'ep', n: [320, 24.0, 0.15, 1.5, 12.0, 0], u: 'g' },
+  { id: 'lentcorail', nom: 'Lentilles corail', r: 'ep', n: [330, 25.0, 0.25, 2.0, 11.0, 0], u: 'g' },
+  { id: 'poischiche', nom: 'Pois chiches secs', r: 'ep', n: [350, 20.0, 0.6, 3.0, 12.0, 0], u: 'g' },
+  { id: 'harblanc', nom: 'Haricots blancs secs', r: 'ep', n: [300, 22.0, 0.3, 2.5, 16.0, 0], u: 'g' },
+  { id: 'harrouge', nom: 'Haricots rouges secs', r: 'ep', n: [330, 22.0, 0.15, 2.2, 15.0, 0], u: 'g' },
+  { id: 'tompelees', nom: 'Tomates pelées nature (bocal ou boîte)', r: 'ep', n: [23, 1.2, 0.03, 3.5, 1.2, 0], u: 'g', z: 1 },
+  { id: 'concentre', nom: 'Concentré de tomate', r: 'ep', n: [85, 4.3, 0.1, 12.0, 4.0, 0], u: 'g' },
+  { id: 'noix', nom: 'Cerneaux de noix', r: 'ep', n: [700, 15.0, 6.0, 2.6, 6.7, 0], u: 'g' },
+  { id: 'amande', nom: 'Amandes', r: 'ep', n: [620, 25.0, 3.7, 4.4, 10.0, 0], u: 'g' },
+  { id: 'chocolat', nom: 'Chocolat noir 70 %', r: 'ep', n: [570, 8.0, 21.0, 29.0, 11.0, 0], u: 'g' },
+  { id: 'cacao', nom: 'Cacao en poudre non sucré', r: 'ep', n: [350, 20.0, 8.0, 1.5, 30.0, 0], u: 'g' },
+  { id: 'vinblanc', nom: 'Vin blanc sec', r: 'ep', n: [70, 0.1, 0, 0.6, 0, 0], u: 'ml' },
+  { id: 'vinrouge', nom: 'Vin rouge', r: 'ep', n: [72, 0.1, 0, 0.3, 0, 0], u: 'ml' },
+  // --- Placard : huiles, condiments, épices ---
+  { id: 'holive', nom: "Huile d'olive", r: 'pl', n: [900, 0, 14.5, 0, 0, 0], u: 'ml' },
+  { id: 'hcolza', nom: 'Huile de colza', r: 'pl', n: [900, 0, 7.5, 0, 0, 0], u: 'ml' },
+  { id: 'vinaigre', nom: 'Vinaigre', r: 'pl', n: [20, 0, 0, 0.5, 0, 0], u: 'ml' },
+  { id: 'moutarde', nom: 'Moutarde', r: 'pl', n: [140, 7.0, 0.6, 2.0, 3.0, 0], u: 'g' },
+  { id: 'soja', nom: 'Sauce soja (tamari)', r: 'pl', n: [60, 8.0, 0, 4.0, 0, 0], u: 'ml' },
+  { id: 'miel', nom: 'Miel', r: 'pl', n: [330, 0.4, 0, 81.0, 0, 0], u: 'g' },
+  { id: 'sucre', nom: 'Sucre', r: 'pl', n: [400, 0, 0, 100.0, 0, 0], u: 'g' },
+  { id: 'maizena', nom: 'Fécule de maïs', r: 'pl', n: [360, 0.3, 0.05, 0, 0.9, 0], u: 'g' },
+  { id: 'levure', nom: 'Levure chimique', r: 'pl', n: [0, 0, 0, 0, 0, 0], u: 'g', z: 1 },
+  { id: 'sel', nom: 'Sel', r: 'pl', n: [0, 0, 0, 0, 0, 0], u: 'g', z: 1 },
+  { id: 'poivre', nom: 'Poivre', r: 'pl', n: [0, 0, 0, 0, 0, 0], u: 'g', z: 1 },
+  { id: 'thym', nom: 'Thym', r: 'pl', n: [0, 0, 0, 0, 0, 0], u: 'g', z: 1 },
+  { id: 'laurier', nom: 'Laurier', r: 'pl', n: [0, 0, 0, 0, 0, 0], u: 'g', z: 1 },
+  { id: 'hprovence', nom: 'Herbes de Provence', r: 'pl', n: [0, 0, 0, 0, 0, 0], u: 'g', z: 1 },
+  { id: 'cumin', nom: 'Cumin', r: 'pl', n: [0, 0, 0, 0, 0, 0], u: 'g', z: 1 },
+  { id: 'curry', nom: 'Curry', r: 'pl', n: [0, 0, 0, 0, 0, 0], u: 'g', z: 1 },
+  { id: 'curcuma', nom: 'Curcuma', r: 'pl', n: [0, 0, 0, 0, 0, 0], u: 'g', z: 1 },
+  { id: 'paprika', nom: 'Paprika / piment d’Espelette', r: 'pl', n: [0, 0, 0, 0, 0, 0], u: 'g', z: 1 },
+  { id: 'cannelle', nom: 'Cannelle', r: 'pl', n: [0, 0, 0, 0, 0, 0], u: 'g', z: 1 },
+  { id: 'muscade', nom: 'Noix de muscade', r: 'pl', n: [0, 0, 0, 0, 0, 0], u: 'g', z: 1 }
+];
+
+/* ===== Recettes de base =====
+   Quantités pour UNE portion adulte « raisonnable » (coefficient 1).
+   i = [[id aliment, grammes], ...] */
+const RECETTES_BASE = [
+  // ---------- Poissons ----------
+  { id: 'r_cabillaud_papillote', nom: 'Cabillaud en papillote au fenouil et citron', cat: 'plat', tags: ['poisson'], saison: ['toutes'], temps: 35,
+    i: [['poissonblanc', 130], ['fenouil', 150], ['citron', 30], ['holive', 5], ['aneth', 3], ['pdt', 150], ['sel', 1], ['poivre', 0.5]],
+    e: ['Préchauffer le four à 200 °C. Cuire les pommes de terre à la vapeur (20 min).',
+        'Émincer finement le fenouil, le faire revenir 5 min à la poêle avec la moitié de l’huile.',
+        'Sur une feuille de papier cuisson, poser le fenouil, le poisson, des rondelles de citron, l’aneth, sel, poivre et le reste de l’huile.',
+        'Fermer la papillote et cuire 15 min au four. Servir avec les pommes de terre.'] },
+  { id: 'r_saumon_brocoli', nom: 'Saumon au four, brocoli et quinoa', cat: 'plat', tags: ['poisson'], saison: ['toutes'], temps: 25,
+    i: [['saumon', 110], ['brocoli', 200], ['quinoa', 50], ['citron', 20], ['holive', 3], ['aneth', 2], ['sel', 1], ['poivre', 0.5]],
+    e: ['Rincer le quinoa et le cuire 12 min dans 2 fois son volume d’eau salée.',
+        'Cuire le brocoli en fleurettes à la vapeur 8 min (il doit rester croquant).',
+        'Poser le saumon sur une plaque, arroser de citron et d’un filet d’huile, cuire 12 min à 200 °C.',
+        'Parsemer d’aneth et servir ensemble.'] },
+  { id: 'r_maquereau_lentilles', nom: 'Maquereau grillé et salade tiède de lentilles', cat: 'plat', tags: ['poisson', 'legumineuses'], saison: ['automne', 'hiver', 'printemps'], temps: 35,
+    i: [['maquereau', 110], ['lentilles', 50], ['echalote', 15], ['carotte', 60], ['persil', 5], ['moutarde', 5], ['vinaigre', 5], ['hcolza', 5], ['laurier', 0.5], ['thym', 0.5]],
+    e: ['Cuire les lentilles 25 min dans l’eau froide départ, avec laurier, thym et la carotte en petits dés. Saler en fin de cuisson.',
+        'Préparer une vinaigrette : moutarde, vinaigre, huile de colza, échalote ciselée.',
+        'Griller les filets de maquereau côté peau 4 à 5 min à la poêle antiadhésive, sans matière grasse.',
+        'Mélanger les lentilles tièdes et la vinaigrette, parsemer de persil, poser le poisson dessus.'] },
+  { id: 'r_moules', nom: 'Moules marinières (sans crème)', cat: 'plat', tags: ['poisson'], saison: ['ete', 'automne', 'hiver'], temps: 25,
+    i: [['moules', 450], ['echalote', 20], ['ail', 5], ['vinblanc', 50], ['persil', 5], ['holive', 3], ['painlevain', 40], ['poivre', 0.5]],
+    e: ['Gratter et rincer les moules, jeter celles qui sont ouvertes.',
+        'Faire suer échalote et ail hachés dans l’huile, sans coloration.',
+        'Ajouter le vin blanc, les moules, poivrer, couvrir et cuire à feu vif 5 à 6 min en remuant, jusqu’à ouverture.',
+        'Parsemer de persil. Servir avec le pain pour le jus.'] },
+  { id: 'r_curry_crevettes', nom: 'Curry de crevettes aux légumes, riz basmati', cat: 'plat', tags: ['poisson'], saison: ['toutes'], temps: 30,
+    i: [['crevette', 110], ['courgette', 150], ['poivron', 100], ['oignon', 50], ['tompelees', 100], ['gingembre', 5], ['ail', 3], ['curry', 3], ['coriandre', 5], ['hcolza', 5], ['rizbasmati', 50]],
+    e: ['Cuire le riz basmati (rincé) 10 à 12 min.',
+        'Faire revenir oignon, ail et gingembre râpé dans l’huile, ajouter le curry 1 min.',
+        'Ajouter poivron et courgette en dés, cuire 8 min, puis les tomates pelées, laisser mijoter 10 min.',
+        'Ajouter les crevettes 3 à 4 min (elles deviennent roses). Parsemer de coriandre.'] },
+  { id: 'r_sardines_tomates', nom: 'Sardines au four, tomates provençales et boulgour', cat: 'plat', tags: ['poisson'], saison: ['printemps', 'ete'], temps: 35,
+    i: [['sardine', 130], ['tomate', 240], ['ail', 4], ['persil', 5], ['paincomplet', 10], ['holive', 5], ['boulgour', 50], ['hprovence', 0.5], ['sel', 1]],
+    e: ['Couper les tomates en deux, les garnir d’un hachis ail-persil-pain émietté, arroser d’huile, cuire 25 min à 200 °C.',
+        'Ajouter les sardines dans le plat les 8 dernières minutes, avec les herbes de Provence.',
+        'Cuire le boulgour 10 min dans 2 fois son volume d’eau salée.'] },
+  { id: 'r_truite_amandes', nom: 'Truite aux amandes, haricots verts', cat: 'plat', tags: ['poisson'], saison: ['printemps', 'ete', 'automne'], temps: 25,
+    i: [['truite', 120], ['amande', 8], ['harvert', 200], ['citron', 15], ['holive', 5], ['pdt', 120], ['persil', 3]],
+    e: ['Cuire les pommes de terre et les haricots verts à la vapeur (20 min et 10 min).',
+        'Dorer à sec les amandes effilées dans une poêle, réserver.',
+        'Cuire la truite dans l’huile 3 min de chaque côté.',
+        'Servir avec les amandes, le jus de citron et le persil.'] },
+  { id: 'r_parmentier_cabillaud', nom: 'Parmentier de cabillaud aux épinards', cat: 'plat', tags: ['poisson'], saison: ['automne', 'hiver', 'printemps'], temps: 45,
+    i: [['poissonblanc', 120], ['pdt', 200], ['lait', 50], ['epinard', 120], ['ail', 3], ['holive', 5], ['muscade', 0.2], ['persil', 3]],
+    e: ['Cuire les pommes de terre épluchées 20 min à l’eau, les écraser avec le lait chaud et la moitié de l’huile, muscade, sel.',
+        'Pocher le poisson 6 min dans l’eau frémissante, l’effeuiller.',
+        'Faire tomber les épinards avec l’ail et le reste de l’huile.',
+        'Dans un plat : épinards, poisson, purée. Gratiner 15 min à 200 °C.'] },
+  // ---------- Volailles ----------
+  { id: 'r_poulet_basquaise', nom: 'Poulet basquaise, riz complet', cat: 'plat', tags: ['volaille'], saison: ['ete', 'automne'], temps: 50,
+    i: [['pouletcuisse', 130], ['poivron', 150], ['tomate', 150], ['oignon', 50], ['ail', 3], ['paprika', 1], ['holive', 5], ['rizcomplet', 50], ['thym', 0.5]],
+    e: ['Dorer le poulet dans l’huile dans une cocotte, réserver.',
+        'Faire revenir oignon, ail et poivrons en lanières 10 min.',
+        'Ajouter tomates en morceaux, piment d’Espelette, thym et le poulet ; couvrir et mijoter 30 min.',
+        'Cuire le riz complet 25 à 30 min.'] },
+  { id: 'r_poulet_soleil', nom: 'Poulet au citron et légumes du soleil rôtis', cat: 'plat', tags: ['volaille'], saison: ['ete', 'automne'], temps: 45,
+    i: [['pouletfilet', 130], ['courgette', 150], ['aubergine', 100], ['poivron', 80], ['tomcerise', 100], ['oignon', 40], ['citron', 30], ['holive', 7], ['thym', 0.5], ['ail', 3]],
+    e: ['Couper les légumes en gros dés, les mélanger avec l’huile, l’ail et le thym, rôtir 25 min à 200 °C.',
+        'Mariner le poulet dans le jus de citron, sel, poivre.',
+        'Ajouter le poulet sur les légumes et poursuivre 15 à 18 min.'] },
+  { id: 'r_dinde_moutarde', nom: 'Dinde à la moutarde légère, champignons et pâtes complètes', cat: 'plat', tags: ['volaille'], saison: ['toutes'], temps: 25,
+    i: [['dinde', 120], ['moutarde', 10], ['fblanc0', 50], ['champi', 120], ['echalote', 15], ['hcolza', 5], ['patescompl', 60], ['persil', 3]],
+    e: ['Cuire les pâtes complètes selon le paquet.',
+        'Dorer la dinde en lanières dans l’huile, réserver. Faire revenir l’échalote et les champignons émincés 6 min.',
+        'Hors du feu, ajouter la moutarde mélangée au fromage blanc, puis la dinde. Réchauffer doucement sans bouillir.',
+        'Servir avec les pâtes et le persil.'] },
+  { id: 'r_tajine_poulet', nom: 'Tajine de poulet aux légumes et pois chiches', cat: 'plat', tags: ['volaille', 'legumineuses'], saison: ['automne', 'hiver'], temps: 60,
+    i: [['pouletcuisse', 110], ['carotte', 100], ['courgette', 100], ['oignon', 50], ['poischiche', 25], ['tompelees', 80], ['cumin', 1], ['cannelle', 0.5], ['curcuma', 1], ['gingembre', 3], ['coriandre', 5], ['hcolza', 5], ['semoule', 40]],
+    e: ['La veille : faire tremper les pois chiches (ou utiliser des pois chiches cuits nature).',
+        'Dorer le poulet dans l’huile avec l’oignon et les épices.',
+        'Ajouter carottes, pois chiches, tomates et 20 cl d’eau ; couvrir et mijoter 35 min. Ajouter la courgette 15 min avant la fin.',
+        'Préparer la semoule avec son volume d’eau bouillante. Parsemer de coriandre.'] },
+  { id: 'r_wok_poulet', nom: 'Wok de poulet aux légumes croquants', cat: 'plat', tags: ['volaille'], saison: ['toutes'], temps: 25,
+    i: [['pouletfilet', 120], ['brocoli', 100], ['poivron', 80], ['carotte', 80], ['champi', 60], ['soja', 10], ['gingembre', 5], ['ail', 3], ['hcolza', 5], ['rizbasmati', 50]],
+    e: ['Cuire le riz.',
+        'Saisir le poulet en lanières dans l’huile très chaude, réserver.',
+        'Sauter les légumes taillés finement 5 à 6 min avec ail et gingembre (ils restent croquants).',
+        'Remettre le poulet, ajouter la sauce soja, mélanger 1 min.'] },
+  // ---------- Viandes ----------
+  { id: 'r_boeuf_carottes', nom: 'Bœuf aux carottes', cat: 'plat', tags: ['viande'], saison: ['automne', 'hiver'], temps: 150,
+    i: [['boeufmijoter', 120], ['carotte', 200], ['oignon', 50], ['concentre', 10], ['vinrouge', 50], ['hcolza', 4], ['pdt', 120], ['thym', 0.5], ['laurier', 0.5]],
+    e: ['Couper la viande en cubes, dégraisser, la dorer dans l’huile en cocotte.',
+        'Ajouter l’oignon, le concentré, le vin, thym, laurier et de l’eau à hauteur.',
+        'Couvrir et mijoter 1 h 30 à feu doux. Ajouter les carottes en rondelles et les pommes de terre, poursuivre 45 min.',
+        'Astuce : préparé la veille, on peut retirer la graisse figée en surface.'] },
+  { id: 'r_porc_pommes', nom: 'Filet mignon de porc aux pommes, haricots verts', cat: 'plat', tags: ['viande'], saison: ['automne', 'hiver'], temps: 40,
+    i: [['porcfilet', 120], ['pomme', 100], ['oignon', 40], ['hcolza', 5], ['thym', 0.5], ['harvert', 150], ['pdt', 100]],
+    e: ['Dorer le filet mignon entier dans l’huile sur toutes les faces.',
+        'Ajouter oignon émincé, pommes en quartiers, thym et un fond d’eau ; couvrir et cuire 20 à 25 min.',
+        'Cuire haricots verts et pommes de terre à la vapeur.',
+        'Trancher le filet et servir avec les pommes fondantes.'] },
+  { id: 'r_chili', nom: 'Chili con carne maison', cat: 'plat', tags: ['viande', 'legumineuses'], saison: ['automne', 'hiver'], temps: 60,
+    i: [['boeufhache', 80], ['harrouge', 40], ['tompelees', 150], ['poivron', 80], ['oignon', 50], ['ail', 3], ['cumin', 1], ['paprika', 1], ['hcolza', 4], ['rizbasmati', 40], ['coriandre', 3]],
+    e: ['La veille : faire tremper les haricots rouges, puis les cuire 1 h (ou utiliser des haricots cuits nature).',
+        'Faire revenir oignon, ail et poivron dans l’huile, ajouter la viande et les épices.',
+        'Ajouter les tomates et les haricots, mijoter 25 min.',
+        'Servir avec le riz et la coriandre.'] },
+  { id: 'r_veau_celeri', nom: 'Escalope de veau, purée de céleri', cat: 'plat', tags: ['viande'], saison: ['automne', 'hiver'], temps: 35,
+    i: [['veau', 120], ['celerirave', 200], ['pdt', 100], ['lait', 40], ['holive', 5], ['citron', 10], ['persil', 3], ['muscade', 0.2]],
+    e: ['Cuire céleri et pommes de terre en morceaux 20 min à l’eau salée.',
+        'Mixer avec le lait chaud, la muscade, sel et poivre.',
+        'Cuire l’escalope 2 min de chaque côté dans l’huile, déglacer avec le jus de citron.',
+        'Parsemer de persil.'] },
+  // ---------- Végétarien / légumineuses / œufs ----------
+  { id: 'r_dahl', nom: 'Dahl de lentilles corail aux épinards', cat: 'plat', tags: ['vege', 'legumineuses'], saison: ['automne', 'hiver', 'printemps'], temps: 35,
+    i: [['lentcorail', 60], ['tompelees', 120], ['oignon', 50], ['ail', 3], ['gingembre', 5], ['curcuma', 1], ['cumin', 1], ['epinard', 80], ['hcolza', 5], ['rizbasmati', 40], ['coriandre', 3]],
+    e: ['Faire revenir oignon, ail, gingembre et épices dans l’huile.',
+        'Ajouter les lentilles rincées, les tomates et 3 fois leur volume d’eau ; cuire 20 min en remuant.',
+        'Ajouter les épinards 3 min avant la fin. Servir avec le riz et la coriandre.'] },
+  { id: 'r_omelette', nom: 'Omelette légère aux champignons, salade verte', cat: 'plat', tags: ['oeufs', 'vege'], saison: ['toutes'], temps: 15,
+    i: [['oeuf', 55], ['blancoeuf', 60], ['champi', 120], ['ciboulette', 5], ['hcolza', 7], ['salade', 60], ['moutarde', 3], ['vinaigre', 5], ['paincomplet', 40]],
+    e: ['Faire sauter les champignons émincés dans une poêle antiadhésive avec la moitié de l’huile.',
+        'Battre l’œuf entier avec les blancs, la ciboulette, sel, poivre ; verser sur les champignons et cuire à feu moyen.',
+        'Servir avec la salade assaisonnée (moutarde, vinaigre, huile de colza) et le pain.',
+        'Un œuf entier + des blancs : autant de protéines, beaucoup moins de cholestérol.'] },
+  { id: 'r_tian_chevre', nom: 'Tian provençal au chèvre frais, boulgour', cat: 'plat', tags: ['vege'], saison: ['ete', 'automne'], temps: 60,
+    i: [['courgette', 150], ['tomate', 150], ['aubergine', 100], ['oignon', 40], ['chevrefrais', 30], ['holive', 7], ['thym', 0.5], ['ail', 3], ['boulgour', 50]],
+    e: ['Couper les légumes en rondelles fines, les ranger debout en alternance dans un plat sur un lit d’oignon.',
+        'Arroser d’huile, ail, thym, sel, poivre ; cuire 45 min à 180 °C.',
+        'Émietter le chèvre frais sur le dessus 10 min avant la fin.',
+        'Servir avec le boulgour.'] },
+  { id: 'r_curry_poischiches', nom: 'Curry de pois chiches et épinards', cat: 'plat', tags: ['vege', 'legumineuses'], saison: ['toutes'], temps: 35,
+    i: [['poischiche', 50], ['epinard', 120], ['tompelees', 120], ['oignon', 50], ['ail', 3], ['gingembre', 5], ['curry', 3], ['yaourt0', 40], ['hcolza', 5], ['rizbasmati', 40]],
+    e: ['Faire tremper et cuire les pois chiches (ou utiliser des pois chiches cuits nature).',
+        'Faire revenir oignon, ail, gingembre et curry dans l’huile, ajouter tomates et pois chiches, mijoter 15 min.',
+        'Ajouter les épinards jusqu’à ce qu’ils tombent. Hors du feu, ajouter le yaourt.',
+        'Servir avec le riz.'] },
+  { id: 'r_salade_quinoa', nom: 'Salade complète de quinoa, feta et légumes croquants', cat: 'plat', tags: ['vege', 'legumineuses'], saison: ['printemps', 'ete'], temps: 20,
+    i: [['quinoa', 50], ['poischiche', 20], ['concombre', 100], ['tomate', 120], ['poivron', 60], ['feta', 25], ['menthe', 4], ['citron', 20], ['holive', 7]],
+    e: ['Cuire le quinoa 12 min, le refroidir.',
+        'Couper concombre, tomate et poivron en dés.',
+        'Mélanger avec les pois chiches cuits, la feta émiettée, la menthe ciselée, le citron et l’huile.'] },
+  { id: 'r_shakshuka', nom: 'Shakshuka (œuf poché à la tomate et aux poivrons)', cat: 'plat', tags: ['oeufs', 'vege'], saison: ['toutes'], temps: 30,
+    i: [['oeuf', 55], ['poivron', 120], ['tompelees', 200], ['oignon', 50], ['ail', 3], ['cumin', 1], ['paprika', 1], ['holive', 5], ['coriandre', 3], ['paincomplet', 50], ['poischiche', 20]],
+    e: ['Faire revenir oignon, ail et poivrons dans l’huile 10 min.',
+        'Ajouter tomates, épices et pois chiches cuits ; mijoter 10 min.',
+        'Creuser un puits, y casser l’œuf, couvrir et cuire 6 à 8 min.',
+        'Parsemer de coriandre, servir avec le pain complet.'] },
+  { id: 'r_lentilles_mijotees', nom: 'Lentilles vertes mijotées aux légumes', cat: 'plat', tags: ['vege', 'legumineuses'], saison: ['automne', 'hiver'], temps: 40,
+    i: [['lentilles', 60], ['carotte', 100], ['oignon', 40], ['celeri', 40], ['tompelees', 60], ['hcolza', 4], ['thym', 0.5], ['laurier', 0.5], ['persil', 3], ['moutarde', 3]],
+    e: ['Faire suer oignon, carotte et céleri en dés dans l’huile.',
+        'Ajouter les lentilles, les tomates, thym, laurier et 3 fois leur volume d’eau.',
+        'Cuire 25 à 30 min. Saler en fin de cuisson, relever d’une pointe de moutarde, parsemer de persil.'] },
+  { id: 'r_pates_legumes', nom: 'Pâtes complètes aux légumes et basilic', cat: 'plat', tags: ['vege'], saison: ['printemps', 'ete'], temps: 20,
+    i: [['patescompl', 70], ['courgette', 150], ['tomcerise', 100], ['ail', 3], ['basilic', 5], ['parmesan', 10], ['holive', 7]],
+    e: ['Cuire les pâtes.',
+        'Faire sauter la courgette en dés et l’ail dans l’huile 6 min, ajouter les tomates cerises coupées 2 min.',
+        'Mélanger avec les pâtes, le basilic et le parmesan râpé.'] },
+  { id: 'r_minestrone', nom: 'Minestrone (soupe-repas)', cat: 'plat', tags: ['vege', 'legumineuses', 'soupe'], saison: ['automne', 'hiver', 'printemps'], temps: 50,
+    i: [['harblanc', 30], ['carotte', 60], ['celeri', 40], ['courgette', 80], ['poireau', 60], ['tompelees', 100], ['pates', 20], ['basilic', 4], ['parmesan', 8], ['holive', 3], ['ail', 3]],
+    e: ['Faire suer l’ail et les légumes coupés en petits dés dans l’huile.',
+        'Ajouter tomates, haricots cuits et 40 cl d’eau par personne ; cuire 25 min.',
+        'Ajouter les petites pâtes 10 min avant la fin.',
+        'Servir avec basilic et parmesan.'] },
+  { id: 'r_hachis_lentilles', nom: 'Hachis parmentier de lentilles', cat: 'plat', tags: ['vege', 'legumineuses'], saison: ['automne', 'hiver'], temps: 60,
+    i: [['lentilles', 40], ['carotte', 80], ['oignon', 40], ['tompelees', 80], ['pdt', 200], ['lait', 50], ['hcolza', 5], ['comte', 10], ['thym', 0.5]],
+    e: ['Cuire les lentilles 25 min avec le thym.',
+        'Faire revenir oignon et carotte râpée, ajouter tomates et lentilles égouttées, mijoter 10 min.',
+        'Préparer une purée avec les pommes de terre et le lait chaud.',
+        'Dans un plat : lentilles, purée, comté râpé. Gratiner 20 min à 200 °C.'] },
+  { id: 'r_veloute_potiron', nom: 'Velouté de potiron et tartine au chèvre (soirée légère)', cat: 'plat', tags: ['vege', 'soupe'], saison: ['automne', 'hiver'], temps: 35,
+    i: [['butternut', 300], ['oignon', 40], ['pdt', 50], ['lait', 50], ['muscade', 0.2], ['paincomplet', 40], ['chevrefrais', 20], ['holive', 3]],
+    e: ['Faire suer l’oignon dans l’huile, ajouter potiron et pomme de terre en cubes, couvrir d’eau.',
+        'Cuire 20 min, mixer avec le lait et la muscade.',
+        'Tartiner le pain grillé de chèvre frais, poivrer.'] },
+  // ---------- Entrées ----------
+  { id: 'r_carottes_rapees', nom: 'Carottes râpées au citron', cat: 'entree', tags: ['vege'], saison: ['toutes'], temps: 10,
+    i: [['carotte', 120], ['citron', 15], ['hcolza', 4], ['persil', 3]],
+    e: ['Râper les carottes, assaisonner de jus de citron, huile de colza, sel, poivre et persil.'] },
+  { id: 'r_veloute_poireaux', nom: 'Velouté de poireaux', cat: 'entree', tags: ['vege', 'soupe'], saison: ['automne', 'hiver', 'printemps'], temps: 30,
+    i: [['poireau', 180], ['pdt', 40], ['oignon', 30], ['lait', 30], ['hcolza', 2]],
+    e: ['Faire suer poireau et oignon dans l’huile, ajouter la pomme de terre et de l’eau à hauteur.',
+        'Cuire 20 min et mixer avec le lait.'] },
+  { id: 'r_salade_tomates', nom: 'Salade de tomates et concombre', cat: 'entree', tags: ['vege'], saison: ['ete'], temps: 10,
+    i: [['tomate', 120], ['concombre', 80], ['oignon', 10], ['basilic', 3], ['vinaigre', 5], ['holive', 4]],
+    e: ['Couper tomates et concombre, ajouter oignon émincé et basilic.', 'Assaisonner de vinaigre, huile, sel et poivre.'] },
+  { id: 'r_taboule', nom: 'Taboulé libanais (très persillé)', cat: 'entree', tags: ['vege'], saison: ['printemps', 'ete'], temps: 20,
+    i: [['boulgour', 20], ['persil', 40], ['menthe', 5], ['tomate', 80], ['oignon', 15], ['citron', 25], ['holive', 5]],
+    e: ['Faire gonfler le boulgour fin 10 min dans de l’eau froide, l’égoutter.',
+        'Hacher finement persil, menthe, oignon ; couper les tomates en petits dés.',
+        'Mélanger avec le jus de citron, l’huile, sel et poivre.'] },
+  { id: 'r_soupe_legumes', nom: 'Soupe de légumes du marché', cat: 'entree', tags: ['vege', 'soupe'], saison: ['automne', 'hiver'], temps: 35,
+    i: [['carotte', 80], ['poireau', 60], ['navet', 50], ['celeri', 30], ['pdt', 40], ['oignon', 30]],
+    e: ['Éplucher et couper les légumes, les couvrir d’eau, saler.', 'Cuire 25 min et mixer (ou laisser en morceaux).'] },
+  { id: 'r_betteraves', nom: 'Betteraves vinaigrette à l’échalote', cat: 'entree', tags: ['vege'], saison: ['automne', 'hiver', 'printemps'], temps: 10,
+    i: [['betterave', 120], ['echalote', 10], ['vinaigre', 5], ['hcolza', 4], ['persil', 3]],
+    e: ['Couper la betterave en dés, ajouter échalote ciselée, vinaigre, huile, sel, poivre et persil.'] },
+  { id: 'r_salade_verte', nom: 'Salade verte et radis', cat: 'entree', tags: ['vege'], saison: ['printemps', 'ete'], temps: 10,
+    i: [['salade', 60], ['radis', 50], ['moutarde', 3], ['vinaigre', 5], ['hcolza', 4]],
+    e: ['Laver la salade, couper les radis en rondelles.', 'Vinaigrette : moutarde, vinaigre, huile de colza.'] },
+  // ---------- Desserts ----------
+  { id: 'r_salade_fruits', nom: 'Salade de fruits frais', cat: 'dessert', tags: ['vege'], saison: ['toutes'], temps: 15,
+    i: [['orange', 80], ['pomme', 70], ['kiwi', 60], ['banane', 40], ['citron', 10], ['menthe', 2]],
+    e: ['Couper les fruits en morceaux, arroser de citron, parsemer de menthe ciselée. Servir frais.'] },
+  { id: 'r_pomme_four', nom: 'Pomme au four à la cannelle', cat: 'dessert', tags: ['vege'], saison: ['automne', 'hiver'], temps: 35,
+    i: [['pomme', 180], ['cannelle', 0.5], ['miel', 5], ['noix', 5]],
+    e: ['Évider la pomme, la poser dans un plat avec un fond d’eau.', 'Garnir de miel, cannelle et noix concassées ; cuire 30 min à 180 °C.'] },
+  { id: 'r_fblanc_fruits', nom: 'Fromage blanc aux fruits rouges', cat: 'dessert', tags: ['vege'], saison: ['toutes'], temps: 5,
+    i: [['fblanc0', 120], ['fruitsrouges', 80], ['miel', 5]],
+    e: ['Mélanger le fromage blanc avec les fruits rouges et un filet de miel.'] },
+  { id: 'r_mousse_choco', nom: 'Mousse au chocolat légère (sans jaune)', cat: 'dessert', tags: ['vege'], saison: ['toutes'], temps: 20,
+    i: [['chocolat', 15], ['blancoeuf', 40], ['sucre', 3]],
+    e: ['Faire fondre le chocolat au bain-marie, laisser tiédir.',
+        'Monter les blancs en neige ferme avec le sucre.',
+        'Incorporer délicatement le chocolat aux blancs. Réfrigérer au moins 3 h.'] },
+  { id: 'r_crumble', nom: 'Crumble pomme-poire aux flocons d’avoine', cat: 'dessert', tags: ['vege'], saison: ['automne', 'hiver'], temps: 40,
+    i: [['pomme', 80], ['poire', 80], ['avoine', 15], ['farinecompl', 8], ['amande', 5], ['hcolza', 5], ['sucre', 4], ['cannelle', 0.5]],
+    e: ['Couper les fruits en dés dans un plat, saupoudrer de cannelle.',
+        'Mélanger du bout des doigts flocons, farine, amandes concassées, sucre et huile.',
+        'Répartir sur les fruits et cuire 25 min à 180 °C.'] },
+  { id: 'r_compote', nom: 'Compote pomme-poire sans sucre ajouté', cat: 'dessert', tags: ['vege'], saison: ['automne', 'hiver'], temps: 25,
+    i: [['pomme', 100], ['poire', 60], ['cannelle', 0.3]],
+    e: ['Éplucher et couper les fruits, cuire 15 à 20 min à couvert avec un fond d’eau et la cannelle. Écraser à la fourchette.'] }
+];
+
+</script>
+<script>
+'use strict';
+/* ===== Lecteur de codes-barres EAN-13 / EAN-8 / UPC-A (sans bibliothèque externe) =====
+   On lit des lignes de pixels à travers l'image, on mesure la largeur des barres et des
+   espaces, puis on reconnaît les chiffres selon la norme EAN (GS1). La structure du code,
+   la clé de contrôle et la confirmation sur plusieurs lignes évitent les fausses lectures. */
+const LECTEUR = (() => {
+  const PL = [[3, 2, 1, 1], [2, 2, 2, 1], [2, 1, 2, 2], [1, 4, 1, 1], [1, 1, 3, 2], [1, 2, 3, 1], [1, 1, 1, 4], [1, 3, 1, 2], [1, 2, 1, 3], [3, 1, 1, 2]];
+  const PG = PL.map(p => p.slice().reverse());
+  const PARITE = { LLLLLL: 0, LLGLGG: 1, LLGGLG: 2, LLGGGL: 3, LGLLGG: 4, LGGLLG: 5, LGGGLL: 6, LGLGLG: 7, LGLGGL: 8, LGGLGL: 9 };
+  const TOL_E = 0.8, TOL_S = 1.6, NETTETE = 2;
+
+  function cleOK(code) {
+    const n = code.length; let s = 0;
+    for (let k = n - 2, p = 3; k >= 0; k--, p = 4 - p) s += (code.charCodeAt(k) - 48) * p;
+    return (10 - s % 10) % 10 === code.charCodeAt(n - 1) - 48;
+  }
+  // Un chiffre = 4 éléments (7 modules). Renvoie le chiffre (+10 si codage « G »), ou null.
+  function chiffre(v, k, m, avecG) {
+    const s = v[k] + v[k + 1] + v[k + 2] + v[k + 3];
+    if (s < 4.6 * m || s > 9.4 * m) return null;
+    const f = 7 / s;
+    const u0 = v[k] * f, u1 = v[k + 1] * f, u2 = v[k + 2] * f, u3 = v[k + 3] * f;
+    let best = -1, bg = 0, be = 9;
+    for (let t = 0; t < (avecG ? 2 : 1); t++) {
+      const T = t ? PG : PL;
+      for (let d = 0; d < 10; d++) {
+        const p = T[d];
+        const a = Math.abs(u0 - p[0]), b = Math.abs(u1 - p[1]), c = Math.abs(u2 - p[2]), e = Math.abs(u3 - p[3]);
+        if (a > TOL_E || b > TOL_E || c > TOL_E || e > TOL_E) continue;
+        const err = a + b + c + e;
+        if (err < be) { be = err; best = d; bg = t; }
+      }
+    }
+    if (best < 0 || be > TOL_S) return null;
+    return best + (bg ? 10 : 0);
+  }
+  // Corrige l'étalement de l'encre (barres plus larges, espaces plus étroits) d'après les gardes
+  function corriger(w, c, i, nb, gardes, m) {
+    let sb = 0, nbB = 0, ss = 0, nbS = 0;
+    for (const g of gardes) { const x = w[i + g] / m; if (x < 0.3 || x > 2) return null; if (c[i + g]) { sb += x; nbB++; } else { ss += x; nbS++; } }
+    const delta = Math.max(-0.45, Math.min(0.45, (sb / nbB - ss / nbS) / 2)) * m;
+    const v = new Float64Array(nb);
+    for (let k = 0; k < nb; k++) v[k] = w[i + k] + (c[i + k] ? -delta : delta);
+    return v;
+  }
+  const G13 = [0, 1, 2, 27, 28, 29, 30, 31, 56, 57, 58];
+  function essai13(w, c, i) {
+    if (i < 1 || i + 59 >= w.length) return null;
+    let tot = 0; for (let k = i; k < i + 59; k++) tot += w[k];
+    const m = tot / 95;
+    if (m < 0.9 || w[i - 1] < 3 * m || w[i + 59] < 3 * m) return null;
+    const v = corriger(w, c, i, 59, G13, m); if (!v) return null;
+    let code = '', par = '';
+    for (let j = 0; j < 6; j++) { const r = chiffre(v, 3 + 4 * j, m, true); if (r === null) return null; code += r % 10; par += r >= 10 ? 'G' : 'L'; }
+    for (let j = 0; j < 6; j++) { const r = chiffre(v, 32 + 4 * j, m, false); if (r === null) return null; code += r; }
+    const p = PARITE[par]; if (p === undefined) return null;
+    code = p + code;
+    return cleOK(code) ? code : null;
+  }
+  const G8 = [0, 1, 2, 19, 20, 21, 22, 23, 40, 41, 42];
+  function essai8(w, c, i) {
+    if (i < 1 || i + 43 >= w.length) return null;
+    let tot = 0; for (let k = i; k < i + 43; k++) tot += w[k];
+    const m = tot / 67;
+    if (m < 0.9 || w[i - 1] < 4 * m || w[i + 43] < 4 * m) return null;
+    const v = corriger(w, c, i, 43, G8, m); if (!v) return null;
+    let code = '';
+    for (let j = 0; j < 4; j++) { const r = chiffre(v, 3 + 4 * j, m, false); if (r === null) return null; code += r; }
+    for (let j = 0; j < 4; j++) { const r = chiffre(v, 24 + 4 * j, m, false); if (r === null) return null; code += r; }
+    return cleOK(code) ? code : null;
+  }
+  function decoderRuns(w, c, res) {
+    for (let i = 1; i < w.length; i++) {
+      if (!c[i]) continue;
+      const g = (w[i] + w[i + 1] + w[i + 2]) / 3;
+      if (!(w[i - 1] >= 2.5 * g)) continue;
+      const a = essai13(w, c, i); if (a) { res.push(a); i += 58; continue; }
+      const b = essai8(w, c, i); if (b) { res.push(b); i += 42; }
+    }
+  }
+  function deuxSens(r, res) { // le code peut être à l'envers
+    if (!r || r.w.length < 45) return;
+    decoderRuns(r.w, r.c, res);
+    decoderRuns(r.w.slice().reverse(), r.c.slice().reverse(), res);
+  }
+  // Minimum et maximum glissants sur [x-r, x+r]
+  function minMax(L, n, r, mn, mx) {
+    const qa = new Int32Array(n), qb = new Int32Array(n); let ha = 0, ta = 0, hb = 0, tb = 0;
+    for (let j = 0; j < n + r; j++) {
+      if (j < n) {
+        while (ta > ha && L[qa[ta - 1]] >= L[j]) ta--; qa[ta++] = j;
+        while (tb > hb && L[qb[tb - 1]] <= L[j]) tb--; qb[tb++] = j;
+      }
+      const x = j - r; if (x < 0) continue;
+      const lo = x - r;
+      while (qa[ha] < lo) ha++; while (qb[hb] < lo) hb++;
+      mn[x] = L[qa[ha]]; mx[x] = L[qb[hb]];
+    }
+  }
+  // Méthode 1 : seuil local (milieu entre le plus clair et le plus foncé du voisinage)
+  function runsSeuil(L, n, r, gmid, mn, mx) {
+    minMax(L, n, r, mn, mx);
+    const w = [], c = [];
+    const T = x => (mx[x] - mn[x] >= 18 ? (mn[x] + mx[x]) / 2 : gmid);
+    let d0 = L[0] - T(0), coul = d0 < 0 ? 1 : 0, prev = 0;
+    for (let x = 1; x < n; x++) {
+      const d = L[x] - T(x), k = d < 0 ? 1 : 0;
+      if (k !== coul) { const pos = x - 1 + d0 / (d0 - d); w.push(pos - prev); c.push(coul); prev = pos; coul = k; }
+      d0 = d;
+    }
+    w.push(n - 1 - prev); c.push(coul);
+    return { w, c };
+  }
+  // Méthode 2 : bords (là où la luminosité varie le plus vite), précise même sur un code flou
+  function runsBords(L, n, seuilG, g) {
+    for (let x = 1; x < n - 1; x++) g[x] = (L[x + 1] - L[x - 1]) / 2;
+    g[0] = g[n - 1] = 0;
+    const pos = [], sg = [], am = [];
+    for (let x = 2; x < n - 2; x++) {
+      const v = g[x];
+      if (v >= seuilG ? (v >= g[x - 1] && v > g[x + 1]) : v <= -seuilG ? (v <= g[x - 1] && v < g[x + 1]) : false) {
+        const den = g[x - 1] - 2 * v + g[x + 1];
+        let off = den ? (g[x - 1] - g[x + 1]) / (2 * den) : 0; if (off > 0.5) off = 0.5; else if (off < -0.5) off = -0.5;
+        const s = v > 0 ? 1 : -1, a = Math.abs(v);
+        if (sg.length && sg[sg.length - 1] === s) { if (a > am[am.length - 1]) { pos[pos.length - 1] = x + off; am[am.length - 1] = a; } continue; }
+        pos.push(x + off); sg.push(s); am.push(a);
+      }
+    }
+    if (pos.length < 40) return null;
+    const w = [], c = [];
+    w.push(pos[0]); c.push(sg[0] < 0 ? 0 : 1);
+    for (let k = 1; k < pos.length; k++) { w.push(pos[k] - pos[k - 1]); c.push(sg[k - 1] < 0 ? 1 : 0); }
+    w.push(n - 1 - pos[pos.length - 1]); c.push(sg[sg.length - 1] < 0 ? 1 : 0);
+    return { w, c };
+  }
+  let tp = null;
+  function lireLigne(L, n, res) {
+    if (!tp || tp.n < n) tp = { n, mn: new Float32Array(n), mx: new Float32Array(n), g: new Float32Array(n), f: new Float32Array(n) };
+    // renforce les barres fines (masque flou)
+    const f = tp.f;
+    for (let x = 2; x < n - 2; x++) f[x] = 0.054 * L[x - 2] + 0.242 * L[x - 1] + 0.399 * L[x] + 0.242 * L[x + 1] + 0.054 * L[x + 2];
+    for (let x = 2; x < n - 2; x++) L[x] += NETTETE * (L[x] - f[x]);
+    let lo = 1e9, hi = -1e9;
+    for (let x = 0; x < n; x++) { const v = L[x]; if (v < lo) lo = v; if (v > hi) hi = v; }
+    if (hi - lo < 30) return;
+    const gmid = (lo + hi) / 2, ici = [];
+    deuxSens(runsSeuil(L, n, 10, gmid, tp.mn, tp.mx), ici);
+    deuxSens(runsSeuil(L, n, 36, gmid, tp.mn, tp.mx), ici);
+    deuxSens(runsBords(L, n, Math.max(5, (hi - lo) * 0.08), tp.g), ici);
+    for (const c of new Set(ici)) res.push(c); // une voix par ligne
+  }
+  /* Analyse une image (RGBA si rgba = true, sinon niveaux de gris).
+     o.lignes / o.colonnes : nombre de lignes horizontales / verticales lues,
+     o.y0..o.y1 et o.x0..o.x1 : zone parcourue (en fraction de l'image).
+     Renvoie { code: nombre de lignes l'ayant lu }. */
+  function analyser(px, W, H, rgba, o) {
+    o = o || {};
+    const nl = o.lignes === undefined ? 24 : o.lignes, nc = o.colonnes === undefined ? 14 : o.colonnes;
+    const y0 = o.y0 === undefined ? 0.25 : o.y0, y1 = o.y1 === undefined ? 0.75 : o.y1;
+    const x0 = o.x0 === undefined ? 0.15 : o.x0, x1 = o.x1 === undefined ? 0.85 : o.x1;
+    const res = [];
+    const lum = rgba
+      ? (x, y) => { const k = (y * W + x) * 4; return (px[k] + 2 * px[k + 1] + px[k + 2]) / 4; }
+      : (x, y) => px[y * W + x];
+    const L = new Float32Array(Math.max(W, H));
+    for (let k = 0; k < nl; k++) { // lignes horizontales (moyenne de 3 lignes de pixels voisines)
+      const y = Math.min(H - 2, Math.max(1, Math.round(H * (y0 + (nl > 1 ? (y1 - y0) * k / (nl - 1) : (y1 - y0) / 2)))));
+      for (let x = 0; x < W; x++) L[x] = (lum(x, y - 1) + lum(x, y) + lum(x, y + 1)) / 3;
+      lireLigne(L, W, res);
+    }
+    for (let k = 0; k < nc; k++) { // lignes verticales (code tenu debout)
+      const x = Math.min(W - 2, Math.max(1, Math.round(W * (x0 + (nc > 1 ? (x1 - x0) * k / (nc - 1) : (x1 - x0) / 2)))));
+      for (let y = 0; y < H; y++) L[y] = (lum(x - 1, y) + lum(x, y) + lum(x + 1, y)) / 3;
+      lireLigne(L, H, res);
+    }
+    const votes = {};
+    for (const c of res) votes[c] = (votes[c] || 0) + 1;
+    return votes;
+  }
+  return { analyser, cleOK };
+})();
+</script>
+<script>
+'use strict';
+/* ================= Popote – application ================= */
+const VERSION = '1.1';
+const LS_KEY = 'popote_v1';
+const LS_SECOURS = 'popote_v1_avant_import';
+const APERCU = (() => { try { return window.self !== window.top; } catch (e) { return true; } })(); // affiché dans claude.ai
+const MSG_APERCU = 'Dans l’aperçu sur claude.ai, l’impression et l’envoi de fichiers sont bloqués. Ils fonctionnent dans la version installée depuis GitHub.';
+
+/* ---------- Outils ---------- */
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const uid = () => Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-4);
+const pad = n => String(n).padStart(2, '0');
+const iso = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const parseISO = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const auj = () => iso(new Date());
+const addDays = (s, n) => { const d = parseISO(s); d.setDate(d.getDate() + n); return iso(d); };
+const lundiDe = s => { const d = parseISO(s); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return iso(d); };
+const fmtDate = (s, opt) => parseISO(s).toLocaleDateString('fr-FR', opt || { weekday: 'long', day: 'numeric', month: 'long' });
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+const ecartJours = (a, b) => Math.round((parseISO(b) - parseISO(a)) / 86400000);
+const saisonDe = s => { const m = parseISO(s).getMonth() + 1; return (m === 12 || m <= 2) ? 'hiver' : m <= 5 ? 'printemps' : m <= 8 ? 'ete' : 'automne'; };
+const NOM_SAISON = { printemps: 'Printemps', ete: 'Été', automne: 'Automne', hiver: 'Hiver', toutes: 'Toute l’année' };
+const NOM_CAT = { plat: 'Plat', entree: 'Entrée', dessert: 'Dessert' };
+const NOM_TAG = { poisson: 'Poisson', volaille: 'Volaille', viande: 'Viande', vege: 'Végétarien', legumineuses: 'Légumineuses', oeufs: 'Œufs', soupe: 'Soupe' };
+const LIEUX = { frigo: 'Réfrigérateur', congel: 'Congélateur', placard: 'Placard / cellier' };
+const nb = (x, d = 0) => Number(x).toLocaleString('fr-FR', { maximumFractionDigits: d, minimumFractionDigits: 0 });
+const pluriel = (mot, n) => (n > 1 && !/[sx]$/.test(mot)) ? mot + 's' : mot;
+function demi(x) { // arrondi au 1/2 : 0,5 → ½ ; 2,5 → 2 ½
+  const r = Math.max(0.5, Math.round(x * 2) / 2); const e = Math.floor(r);
+  return r - e ? (e ? e + ' ½' : '½') : String(e);
+}
+function fmtPoids(g, u) {
+  const unite = u === 'ml' ? ['ml', 'L'] : ['g', 'kg'];
+  if (g >= 1000) return nb(g / 1000, 2) + ' ' + unite[1];
+  return nb(g) + ' ' + unite[0];
+}
+
+/* ---------- État ---------- */
+function etatInitial() {
+  return {
+    v: 1,
+    personnes: [
+      { id: 'p1', nom: 'Moi', coef: 1, presentDefaut: true, suivi: true, budget: 30, agsMax: 16 },
+      { id: 'p2', nom: 'Ma femme', coef: 0.8, presentDefaut: true, suivi: true, budget: 23, agsMax: 12 },
+      { id: 'e1', nom: 'Enfant 1', coef: 1.3, presentDefaut: false, suivi: false, budget: 0, agsMax: 20 },
+      { id: 'e2', nom: 'Enfant 2', coef: 1.3, presentDefaut: false, suivi: false, budget: 0, agsMax: 20 },
+      { id: 'e3', nom: 'Enfant 3', coef: 1.3, presentDefaut: false, suivi: false, budget: 0, agsMax: 20 }
+    ],
+    sejours: [], repas: {}, extras: {}, recettesPerso: [], ingrPerso: [], stock: [],
+    codes: {}, scan: [], // codes-barres déjà rencontrés ; produits scannés pas encore rangés
+    courses: { du: null, au: null, items: [], deja: [] },
+    favoris: [], recents: [],
+    options: { zeroFL: true, entreeSoir: true, dessertMidi: false },
+    derniereSauvegarde: null, majLe: Date.now()
+  };
+}
+let S;
+function charger() {
+  let brut = null;
+  try { brut = localStorage.getItem(LS_KEY); } catch (e) { }
+  S = etatInitial();
+  if (brut) { try { S = completer(JSON.parse(brut)); } catch (e) { console.warn(e); } }
+}
+function completer(o) { // ajoute les champs manquants (versions futures)
+  const base = etatInitial();
+  for (const k of Object.keys(base)) if (o[k] === undefined) o[k] = base[k];
+  o.options = Object.assign({}, base.options, o.options || {});
+  o.courses = Object.assign({}, base.courses, o.courses || {});
+  return o;
+}
+let avertiStockage = false;
+function sauver() {
+  S.majLe = Date.now();
+  try { localStorage.setItem(LS_KEY, JSON.stringify(S)); }
+  catch (e) { if (!avertiStockage) { avertiStockage = true; toast('Attention : les données n’ont pas pu être enregistrées sur cet appareil.'); } }
+}
+
+/* ---------- Aliments & recettes ---------- */
+let ING = {}, REC = {};
+function reindexer() {
+  ING = {}; INGR_BASE.forEach(i => ING[i.id] = i); S.ingrPerso.forEach(i => ING[i.id] = i);
+  REC = {}; RECETTES_BASE.forEach(r => REC[r.id] = r); S.recettesPerso.forEach(r => REC[r.id] = r);
+}
+const toutesRecettes = () => Object.values(REC);
+const tousAliments = () => Object.values(ING).sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
+const norm = s => String(s || '').toLowerCase().replace(/œ/g, 'oe').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+const sing = s => s.replace(/s\b/g, '');
+function alimentParNom(nom) { // tolère majuscules, accents et pluriels
+  const n = norm(nom); if (!n) return null;
+  const tous = Object.values(ING);
+  let a = tous.find(i => norm(i.nom) === n) || tous.find(i => sing(norm(i.nom)) === sing(n));
+  if (a) return a;
+  if (n.length >= 4) { const c = tous.filter(i => sing(norm(i.nom)).startsWith(sing(n))); if (c.length === 1) return c[0]; }
+  return null;
+}
+const recetteParNom = nom => { const n = norm(nom); return n ? toutesRecettes().find(r => norm(r.nom) === n) : null; };
+
+/* Formule de points (type SmartPoints) appliquée au total des nutriments */
+function formule(n) { return Math.max(0, n[0] * 0.0305 + n[2] * 0.275 + n[3] * 0.12 - n[1] * 0.098); }
+function nutrListe(liste) { // liste = [[id, g], ...]
+  const t = [0, 0, 0, 0, 0, 0], tp = [0, 0, 0, 0, 0, 0];
+  for (const [id, g] of liste) {
+    const i = ING[id]; if (!i) continue; const f = g / 100;
+    for (let k = 0; k < 6; k++) { t[k] += i.n[k] * f; if (!(S.options.zeroFL && i.z)) tp[k] += i.n[k] * f; }
+  }
+  return { kcal: t[0], prot: t[1], ags: t[2], sucres: t[3], fib: t[4], chol: t[5], pts: formule(tp) };
+}
+const nutrRecette = r => nutrListe(r.i);
+const ptsPour = (brut, coef) => Math.round(brut * coef);
+function badgeAGS(g) { return g <= 3 ? '' : g <= 5 ? 'o' : 'r'; }
+function badgeChol(mg) { return mg <= 100 ? '' : mg <= 200 ? 'o' : 'r'; }
+
+/* Quantités lisibles */
+function qteRecette(id, g) {
+  const i = ING[id]; if (!i) return nb(g) + ' g';
+  if (id === 'sel' || id === 'poivre') return 'selon le goût';
+  if (i.r === 'pl' && i.n[0] === 0) return g < 1.5 ? 'une pincée' : g < 4 ? '1 c. à café' : demi(g / 2.5) + ' c. à café';
+  if (i.r === 'pl') { const v = g; return v <= 10 ? demi(v / 5) + ' c. à café' : demi(v / 15) + ' c. à soupe'; }
+  if (i.u === 'pc') {
+    if (i.ul === 'botte') return g < 15 ? 'quelques brins' : demi(g / i.pc) + ' botte';
+    const n = g / i.pc;
+    if (i.ul === 'gousse') { const r = Math.max(1, Math.round(n)); return r + ' ' + pluriel('gousse', r); }
+    if (i.ul === '') return demi(n);
+    const unite = i.ul || 'pièce';
+    return demi(n) + ' ' + pluriel(unite, Math.ceil(n)) + ' (' + nb(Math.round(g / 5) * 5) + ' g)';
+  }
+  const arr = g > 20 ? Math.round(g / 5) * 5 : Math.round(g);
+  return fmtPoids(arr, i.u);
+}
+function qteAchat(id, g) {
+  const i = ING[id]; if (!i) return fmtPoids(Math.ceil(g), 'g');
+  if (i.r === 'pl' && i.n[0] === 0) return '';
+  if (i.u === 'pc') {
+    const n = Math.max(1, Math.ceil(g / i.pc - 0.2));
+    const unite = i.ul === undefined ? 'pièce' : i.ul;
+    let s = unite === '' ? String(n) : n + ' ' + pluriel(unite, n);
+    if (id === 'ail' && n >= 6) s += ' (≈ ' + Math.ceil(n / 10) + ' tête' + (n > 10 ? 's' : '') + ')';
+    if (i.r === 'fl' && !['botte', 'gousse'].includes(i.ul)) s += ' (≈ ' + fmtPoids(Math.ceil(g / 10) * 10, 'g') + ')';
+    return s;
+  }
+  const arr = g < 100 ? Math.ceil(g / 5) * 5 : Math.ceil(g / 10) * 10;
+  return fmtPoids(arr, i.u);
+}
+function qteStock(it) {
+  if (!it.ing) return esc(it.txt || '');
+  const i = ING[it.ing]; if (!i) return '';
+  if (i.u === 'pc') { const n = Math.round(it.g / i.pc * 10) / 10; return nb(n, 1) + (i.ul === '' ? '' : ' ' + pluriel(i.ul || 'pièce', n)); }
+  return fmtPoids(Math.round(it.g), i.u);
+}
+function uniteSaisie(id) { const i = ING[id]; if (!i) return ''; if (i.u === 'pc') return i.ul === '' ? 'nombre' : (i.ul || 'pièce') + '(s)'; return i.u; }
+
+/* ---------- Foyer, présences, repas ---------- */
+const personne = id => S.personnes.find(p => p.id === id);
+function estPresent(p, date) { return p.presentDefaut || S.sejours.some(s => s.pid === p.id && s.du <= date && date <= s.au); }
+function repas(date, slot, creer) {
+  let j = S.repas[date];
+  if (!j) { if (!creer) return null; j = S.repas[date] = {}; }
+  let m = j[slot];
+  if (!m) { if (!creer) return null; m = j[slot] = { items: [], invites: 0, absents: [], ajoutes: [], cuisine: false, dehors: false, deduit: [] }; }
+  return m;
+}
+function presentsRepas(date, slot) {
+  const m = repas(date, slot);
+  return S.personnes.filter(p => {
+    if (m && m.absents.includes(p.id)) return false;
+    if (m && m.ajoutes.includes(p.id)) return true;
+    return estPresent(p, date);
+  });
+}
+function facteur(date, slot) { const m = repas(date, slot); return presentsRepas(date, slot).reduce((s, p) => s + p.coef, 0) + (m ? m.invites : 0); }
+function couverts(date, slot) { const m = repas(date, slot); return presentsRepas(date, slot).length + (m ? m.invites : 0); }
+function ptsRepasPersonne(date, slot, p) {
+  const m = repas(date, slot);
+  if (!m || m.dehors || !m.items.length) return null;
+  if (!presentsRepas(date, slot).some(x => x.id === p.id)) return null;
+  const t = { pts: 0, ags: 0, kcal: 0, chol: 0 };
+  for (const rid of m.items) { const r = REC[rid]; if (!r) continue; const n = nutrRecette(r); t.pts += ptsPour(n.pts, p.coef); t.ags += n.ags * p.coef; t.kcal += n.kcal * p.coef; t.chol += n.chol * p.coef; }
+  return t;
+}
+function besoinsRepas(date, slot) {
+  const m = repas(date, slot), need = {};
+  if (!m || m.dehors || !m.items.length) return need;
+  const f = facteur(date, slot); if (!f) return need;
+  for (const rid of m.items) { const r = REC[rid]; if (!r) continue; for (const [id, g] of r.i) need[id] = (need[id] || 0) + g * f; }
+  return need;
+}
+
+/* ---------- Stock ---------- */
+const stockDe = id => S.stock.filter(s => s.ing === id).reduce((t, s) => t + s.g, 0);
+function deduireStock(date, slot) {
+  const m = repas(date, slot, true); const need = besoinsRepas(date, slot); m.deduit = [];
+  for (const id of Object.keys(need)) {
+    let reste = need[id];
+    const lots = S.stock.filter(s => s.ing === id).sort((a, b) => (a.dlc || '9999') < (b.dlc || '9999') ? -1 : 1);
+    for (const lot of lots) {
+      if (reste <= 0) break;
+      const pris = Math.min(lot.g, reste); lot.g -= pris; reste -= pris;
+      m.deduit.push({ sid: lot.id, ing: id, g: pris, lieu: lot.lieu, dlc: lot.dlc || null });
+    }
+  }
+  S.stock = S.stock.filter(s => !s.ing || s.g > 0.5);
+}
+function restaurerStock(date, slot) {
+  const m = repas(date, slot); if (!m) return;
+  for (const d of m.deduit || []) {
+    const lot = S.stock.find(s => s.id === d.sid);
+    if (lot) lot.g += d.g; else S.stock.push({ id: d.sid, ing: d.ing, g: d.g, lieu: d.lieu, dlc: d.dlc });
+  }
+  m.deduit = [];
+}
+function lieuParDefaut(id) {
+  const i = ING[id]; if (!i) return 'placard';
+  if (['pdt', 'oignon', 'ail', 'echalote', 'banane', 'patatedouce', 'butternut', 'citron', 'orange', 'clementine', 'pomme', 'poire', 'kiwi', 'tomate', 'avocat'].includes(id)) return 'placard';
+  return ['fl', 'bv', 'po', 'cr'].includes(i.r) ? 'frigo' : 'placard';
+}
+function ajouterAuStock(id, g, lieu, dlc) {
+  const ex = S.stock.find(s => s.ing === id && s.lieu === lieu && !s.dlc && !dlc);
+  if (ex) ex.g += g; else S.stock.push({ id: uid(), ing: id, g, lieu, dlc: dlc || null });
+}
+const urgents = () => S.stock.filter(s => s.dlc && ecartJours(auj(), s.dlc) <= 2).sort((a, b) => a.dlc < b.dlc ? -1 : 1);
+
+/* ---------- Proposition automatique de menus ---------- */
+const CIBLES = { poisson: 3, volaille: 3, viande: 1, legumineuses: 3, oeufs: 1, vege: 3 }; // pour 14 repas
+const PREF = { dej: ['volaille', 'viande', 'poisson', 'legumineuses'], din: ['vege', 'oeufs', 'poisson', 'legumineuses'] };
+function typeRecette(r) {
+  for (const t of ['poisson', 'viande', 'volaille', 'oeufs', 'legumineuses']) if (r.tags.includes(t)) return t;
+  return 'vege';
+}
+function choixPondere(liste, poids) {
+  const tot = poids.reduce((a, b) => a + b, 0); if (!tot) return null;
+  let x = Math.random() * tot;
+  for (let k = 0; k < liste.length; k++) { x -= poids[k]; if (x <= 0) return liste[k]; }
+  return liste[liste.length - 1];
+}
+function proposerSemaine(lundi, opts) {
+  const jours = [...Array(7)].map((_, k) => addDays(lundi, k));
+  const saison = saisonDe(addDays(lundi, 3));
+  const plats = toutesRecettes().filter(r => r.cat === 'plat' && (r.saison.includes('toutes') || r.saison.includes(saison)));
+  const entrees = toutesRecettes().filter(r => r.cat === 'entree' && (r.saison.includes('toutes') || r.saison.includes(saison)));
+  const desserts = toutesRecettes().filter(r => r.cat === 'dessert' && (r.saison.includes('toutes') || r.saison.includes(saison)));
+  // recettes servies les 14 derniers jours : à éviter
+  const recentes = new Set();
+  for (let k = 1; k <= 14; k++) { const d = addDays(lundi, -k); for (const s of ['dej', 'din']) { const m = repas(d, s); if (m) m.items.forEach(x => recentes.add(x)); } }
+  const urg = new Set(urgents().map(s => s.ing));
+  const compte = {}; Object.keys(CIBLES).forEach(t => compte[t] = 0);
+  const dejaSemaine = new Set();
+  const aRemplir = [];
+  for (const d of jours) for (const s of ['dej', 'din']) {
+    const m = repas(d, s);
+    if (m && m.dehors) continue;
+    if (d < auj()) { const pl = m && m.items.map(x => REC[x]).find(r => r && r.cat === 'plat'); if (pl) compte[typeRecette(pl)]++; continue; } // jours passés : on ne touche pas
+    const plat = m && m.items.map(x => REC[x]).find(r => r && r.cat === 'plat');
+    if (plat && !opts.remplacer) { compte[typeRecette(plat)]++; m.items.forEach(x => dejaSemaine.add(x)); continue; }
+    aRemplir.push([d, s]);
+  }
+  const nbRepas = aRemplir.length + Object.values(compte).reduce((a, b) => a + b, 0);
+  const melange = l => l.map(x => [Math.random(), x]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
+  const pioche = l => { let file = []; return () => { if (!file.length) file = melange(l); return file.pop(); }; };
+  const entreeSuivante = pioche(entrees), dessertSuivant = pioche(desserts);
+  const cible = t => CIBLES[t] * nbRepas / 14;
+  let n = 0;
+  for (const [d, s] of aRemplir) {
+    // type le plus en retard, avec préférence midi/soir
+    const types = Object.keys(CIBLES).filter(t => plats.some(r => typeRecette(r) === t && !dejaSemaine.has(r.id)));
+    if (!types.length) break;
+    types.sort((a, b) => (cible(b) - compte[b] + (PREF[s].includes(b) ? 0.6 : 0)) - (cible(a) - compte[a] + (PREF[s].includes(a) ? 0.6 : 0)));
+    let t = types[0];
+    if (t === 'viande' && compte.viande >= Math.ceil(cible('viande'))) t = types[1] || t;
+    const cands = plats.filter(r => typeRecette(r) === t && !dejaSemaine.has(r.id));
+    const poids = cands.map(r => {
+      let w = recentes.has(r.id) ? 0.25 : 1;
+      if (S.favoris.includes(r.id)) w *= 2.5;
+      if (r.i.some(([id]) => urg.has(id))) w *= 4;
+      if (s === 'din') { const p = nutrRecette(r).pts; w *= p <= 9 ? 1.5 : p >= 13 ? 0.5 : 1; }
+      return w;
+    });
+    const r = choixPondere(cands, poids); if (!r) continue;
+    const m = repas(d, s, true);
+    if (m.cuisine) restaurerStock(d, s);
+    m.items = [r.id]; m.cuisine = false; dejaSemaine.add(r.id); compte[t]++; n++;
+    if (s === 'din' && opts.entree && entrees.length && !r.tags.includes('soupe')) m.items.unshift(entreeSuivante().id);
+    if (s === 'dej' && opts.dessert && desserts.length) m.items.push(dessertSuivant().id);
+  }
+  return n;
+}
+
+/* ---------- Liste de courses ---------- */
+function genererListe(du, au) {
+  const need = {};
+  for (let d = du; d <= au; d = addDays(d, 1)) for (const s of ['dej', 'din']) {
+    const m = repas(d, s); if (!m || m.cuisine) continue;
+    const b = besoinsRepas(d, s); for (const id in b) need[id] = (need[id] || 0) + b[id];
+  }
+  const anciens = S.courses.items;
+  const coches = new Set(anciens.filter(x => x.coche && x.ing).map(x => x.ing));
+  const items = anciens.filter(x => x.manuel);
+  const deja = [];
+  for (const id of Object.keys(need)) {
+    const reste = need[id] - stockDe(id);
+    if (reste <= 0.5) { deja.push(id); continue; }
+    const i = ING[id];
+    items.push({ id: uid(), ing: id, g: reste, r: i ? i.r : 'dv', coche: coches.has(id), manuel: false });
+  }
+  S.courses = { du, au, items, deja };
+}
+const nomArticle = it => it.ing ? (ING[it.ing] ? ING[it.ing].nom : it.ing) : it.nom;
+const qteArticle = it => it.ing && !it.manuel ? qteAchat(it.ing, it.g) : (it.txt || '');
+function articlesParRayon(seulementNonCoches) {
+  const g = {};
+  for (const it of S.courses.items) { if (seulementNonCoches && it.coche) continue; (g[it.r] = g[it.r] || []).push(it); }
+  for (const r in g) g[r].sort((a, b) => nomArticle(a).localeCompare(nomArticle(b), 'fr'));
+  return RAYON_ORDRE.filter(r => g[r]).map(r => [r, g[r]]);
+}
+function texteListe() {
+  const c = S.courses; let t = 'Liste de courses';
+  if (c.du && c.au) t += ' – du ' + fmtDate(c.du, { weekday: 'short', day: 'numeric', month: 'short' }) + ' au ' + fmtDate(c.au, { weekday: 'short', day: 'numeric', month: 'short' });
+  t += '\n';
+  for (const [r, its] of articlesParRayon(true)) {
+    t += '\n' + RAYONS[r].toUpperCase() + '\n';
+    for (const it of its) { const q = qteArticle(it); t += '☐ ' + nomArticle(it) + (q ? ' : ' + q : '') + '\n'; }
+  }
+  return t;
+}
+
+/* ---------- Interface : état d'affichage ---------- */
+const UI = { onglet: 'menus', semaine: lundiDe(auj()), rq: '', rfiltre: 'tous', pdate: auj(), ppers: null, pile: [] };
+
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('vu');
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('vu'), 2600);
+}
+/* Fenêtres modales empilées : chaque entrée est une fonction qui renvoie le HTML */
+function ouvrir(fn) { UI.pile.push(fn); UI.haut = true; dessinerModale(); }
+function fermer() { UI.pile.pop(); dessinerModale(); rendre(); }
+function fermerTout() { UI.pile = []; dessinerModale(); rendre(); }
+function dessinerModale() {
+  const v = $('#voile'), f = $('#fenetre');
+  if (!UI.pile.length) { v.classList.remove('ouvert'); f.innerHTML = ''; document.body.style.overflow = ''; return; }
+  const haut = f.scrollTop;
+  f.innerHTML = '<button class="btn ic del fermer-x" data-a="fermer" aria-label="Fermer">✕</button>' + UI.pile[UI.pile.length - 1]();
+  v.classList.add('ouvert'); document.body.style.overflow = 'hidden';
+  f.scrollTop = UI.haut ? 0 : haut; UI.haut = false;
+}
+function rafraichirModale() { if (UI.pile.length) dessinerModale(); }
+function confirmer(msg, libelle, action, danger) {
+  ouvrir(() => `<h2>Confirmation</h2><p>${msg}</p><div class="actions fin"><button class="btn" data-a="fermer">Annuler</button><button class="btn ${danger ? 'terre' : 'pri'}" data-a="confirmerOK">${esc(libelle)}</button></div>`);
+  UI.confirmAction = action;
+}
+
+/* ---------- Rendu principal ---------- */
+const ONGLETS = [['menus', '📅', 'Menus'], ['courses', '🛒', 'Courses'], ['stock', '🧺', 'Stock'], ['recettes', '📖', 'Recettes'], ['points', '⚖️', 'Points'], ['foyer', '🏠', 'Foyer']];
+function rendre() {
+  $('#onglets').innerHTML = ONGLETS.map(([k, ic, l]) => `<button class="${UI.onglet === k ? 'on' : ''}" data-a="onglet" data-o="${k}"><span class="ico">${ic}</span>${l}</button>`).join('');
+  const vues = { menus: vueMenus, courses: vueCourses, stock: vueStock, recettes: vueRecettes, points: vuePoints, foyer: vueFoyer };
+  $('#main').innerHTML = vues[UI.onglet]();
+  $('#sous').textContent = cap(fmtDate(auj()));
+  $('#bandeau').innerHTML = APERCU ? '<div class="info petit" style="margin:8px 14px 0">Aperçu sur claude.ai : les données restent dans ce navigateur. La version à installer sur l’iPad et l’iPhone est celle de GitHub.</div>' : '';
+}
+
+/* ===== Vue Menus ===== */
+function vueMenus() {
+  const lun = UI.semaine, dim = addDays(lun, 6);
+  let h = `<div class="barre"><button class="btn ic" data-a="sem" data-v="-7" aria-label="Semaine précédente">◀</button>
+    <div class="titre-sem">Semaine du ${fmtDate(lun, { day: 'numeric', month: 'long' })}<br>au ${fmtDate(dim, { day: 'numeric', month: 'long' })}</div>
+    <button class="btn ic" data-a="sem" data-v="7" aria-label="Semaine suivante">▶</button></div>`;
+  h += `<div class="actions"><button class="btn pri" data-a="proposer">✨ Proposer les menus</button>
+    <button class="btn" data-a="listeSemaine">🛒 Liste de cette semaine</button>
+    ${lun !== lundiDe(auj()) ? '<button class="btn" data-a="semAuj">Aujourd’hui</button>' : ''}</div>`;
+  const u = urgents();
+  if (u.length) h += `<div class="alerte">⏰ À consommer vite : ${u.map(s => esc(nomStock(s))).join(', ')}. La proposition automatique en tient compte.</div>`;
+  for (let k = 0; k < 7; k++) h += carteJour(addDays(lun, k));
+  return h;
+}
+function carteJour(d) {
+  const venus = S.personnes.filter(p => !p.presentDefaut && estPresent(p, d));
+  return `<div class="jour ${d === auj() ? 'auj' : ''}"><div class="jour-tete"><span class="jour-nom">${cap(fmtDate(d))}</span>
+    ${venus.length ? `<span class="pastille">+ ${venus.map(p => esc(p.nom)).join(', ')}</span>` : ''}</div>
+    <div class="slots">${carteSlot(d, 'dej')}${carteSlot(d, 'din')}</div></div>`;
+}
+function carteSlot(d, s) {
+  const m = repas(d, s);
+  let corps;
+  if (m && m.dehors) corps = '<div class="vide">Pas de repas à la maison</div>';
+  else if (!m || !m.items.length) corps = '<div class="vide">＋ Choisir le repas</div>';
+  else corps = m.items.map(rid => { const r = REC[rid]; return r ? `<div class="plat"><span class="cat-${r.cat}">${esc(r.nom)}</span></div>` : ''; }).join('');
+  let pts = '';
+  if (m && !m.dehors && m.items.length) {
+    pts = S.personnes.filter(p => p.suivi).map(p => { const x = ptsRepasPersonne(d, s, p); return x ? `${esc(p.nom)} <b>${x.pts} pts</b>` : ''; }).filter(Boolean).join(' · ');
+  }
+  return `<button class="slot ${m && m.cuisine ? 'fait' : ''}" data-a="ouvrirSlot" data-d="${d}" data-s="${s}">
+    <div class="slot-tete"><span>${s === 'dej' ? 'Midi' : 'Soir'}</span>${m && m.dehors ? '' : `<span class="nb">· ${couverts(d, s)} pers.</span>`}${m && m.cuisine ? '<span class="ok">✓ cuisiné</span>' : ''}</div>
+    ${corps}${pts ? `<div class="pts-ligne">${pts}</div>` : ''}</button>`;
+}
+function modaleSlot() {
+  const { d, s } = UI.slot; const m = repas(d, s, true);
+  const pres = presentsRepas(d, s).map(p => p.id);
+  let h = `<h2>${cap(fmtDate(d))} – ${s === 'dej' ? 'midi' : 'soir'}</h2>`;
+  h += `<div class="sec"><div class="lbl">Qui mange ?</div><div class="chips">${S.personnes.map(p => `<button class="chip ${pres.includes(p.id) ? 'on' : ''}" data-a="presence" data-p="${p.id}">${esc(p.nom)}</button>`).join('')}</div>
+    <div class="ligne">Invités : <button class="btn ic" data-a="invites" data-v="-1">−</button><b style="min-width:30px;text-align:center">${m.invites}</b><button class="btn ic" data-a="invites" data-v="1">＋</button></div></div>`;
+  h += `<div class="sec"><div class="lbl">Au menu</div>`;
+  if (!m.items.length) h += '<p class="muted">Rien pour l’instant.</p>';
+  m.items.forEach((rid, k) => {
+    const r = REC[rid]; if (!r) return; const n = nutrRecette(r);
+    h += `<div class="item-menu"><span class="muted petit">${NOM_CAT[r.cat]}</span><button class="lien" data-a="voirRecette" data-r="${rid}">${esc(r.nom)}</button><span class="badge">${Math.round(n.pts)} pts</span><button class="btn ic del" data-a="retirerItem" data-i="${k}" aria-label="Retirer">✕</button></div>`;
+  });
+  h += `<div class="actions"><button class="btn pri" data-a="choisir" data-cat="plat">＋ Plat</button><button class="btn" data-a="choisir" data-cat="entree">＋ Entrée</button><button class="btn" data-a="choisir" data-cat="dessert">＋ Dessert</button></div></div>`;
+  if (m.items.length && !m.dehors) {
+    const lignes = S.personnes.filter(p => p.suivi).map(p => { const x = ptsRepasPersonne(d, s, p); return x ? `<div class="ligne-pts"><span class="t">${esc(p.nom)}</span><span class="badge">${x.pts} pts</span><span class="badge ${badgeAGS(x.ags)} g">AGS ${nb(x.ags, 1)} g</span></div>` : ''; }).join('');
+    if (lignes) h += `<div class="sec"><div class="lbl">Points de ce repas</div>${lignes}</div>`;
+  }
+  h += `<div class="sec"><label class="switch"><input type="checkbox" data-c="dehors" ${m.dehors ? 'checked' : ''}> Pas de repas à la maison (restaurant, absents…)</label>
+    <label class="switch"><input type="checkbox" data-c="cuisine" ${m.cuisine ? 'checked' : ''}> Repas cuisiné : retirer les ingrédients du stock</label></div>`;
+  h += `<div class="actions fin"><button class="btn" data-a="viderSlot">Vider ce repas</button><button class="btn pri" data-a="fermer">Terminé</button></div>`;
+  return h;
+}
+function modaleChoix() {
+  const cat = UI.choixCat;
+  let h = `<h2>Choisir ${cat === 'plat' ? 'un plat' : cat === 'entree' ? 'une entrée' : 'un dessert'}</h2>
+    <input type="search" class="recherche" placeholder="Rechercher…" data-i="choixQ" value="${esc(UI.choixQ || '')}">
+    <div class="chips defil" style="margin:10px 0">${['plat', 'entree', 'dessert'].map(c => `<button class="chip ${c === cat ? 'on' : ''}" data-a="choixCat" data-cat="${c}">${NOM_CAT[c]}s</button>`).join('')}</div>
+    <div id="choix-liste">${listeChoix()}</div>`;
+  return h;
+}
+function listeChoix() {
+  const q = (UI.choixQ || '').toLowerCase(); const saison = saisonDe(UI.slot ? UI.slot.d : auj());
+  const rs = toutesRecettes().filter(r => r.cat === UI.choixCat && (!q || r.nom.toLowerCase().includes(q)))
+    .sort((a, b) => { const sa = (a.saison.includes(saison) || a.saison.includes('toutes')) ? 0 : 1, sb = (b.saison.includes(saison) || b.saison.includes('toutes')) ? 0 : 1; return sa - sb || a.nom.localeCompare(b.nom, 'fr'); });
+  if (!rs.length) return '<p class="muted">Aucune recette.</p>';
+  return rs.map(r => carteRecette(r, 'prendre')).join('');
+}
+function carteRecette(r, action) {
+  const n = nutrRecette(r); const saison = saisonDe(auj());
+  const horsSaison = !(r.saison.includes('toutes') || r.saison.includes(saison));
+  return `<button class="rec" data-a="${action}" data-r="${r.id}"><span class="t">${S.favoris.includes(r.id) ? '<span class="etoile">★</span> ' : ''}${esc(r.nom)}
+    <small>${NOM_CAT[r.cat]} · ${r.temps} min${r.tags.length ? ' · ' + r.tags.map(t => NOM_TAG[t]).join(', ') : ''}${horsSaison ? ' · hors saison' : ''}${r.perso ? ' · ma recette' : ''}</small></span>
+    <span class="badges" style="margin:0;flex-direction:column;align-items:flex-end"><span class="badge">${Math.round(n.pts)} pts</span><span class="badge ${badgeAGS(n.ags)} g">AGS ${nb(n.ags, 1)} g</span></span></button>`;
+}
+function modaleProposer() {
+  return `<h2>✨ Proposer les menus</h2>
+    <p>Pour la semaine du ${fmtDate(UI.semaine, { day: 'numeric', month: 'long' })}. Le programme équilibre la semaine : environ 3 repas de poisson, 3 de légumineuses, 3 de volaille, 1 seule viande rouge ou porc, des soirs plus légers, des recettes de saison, et il utilise en priorité ce qui est à consommer vite.</p>
+    <div class="sec">
+      <label class="switch"><input type="checkbox" id="pr-remplacer"> Remplacer aussi les repas déjà choisis</label>
+      <label class="switch"><input type="checkbox" id="pr-entree" ${S.options.entreeSoir ? 'checked' : ''}> Ajouter une entrée de légumes le soir</label>
+      <label class="switch"><input type="checkbox" id="pr-dessert" ${S.options.dessertMidi ? 'checked' : ''}> Ajouter un dessert le midi</label>
+    </div>
+    <p class="muted petit">Les jours déjà passés et les repas marqués « pas de repas à la maison » ne sont pas touchés.</p>
+    <div class="actions fin"><button class="btn" data-a="fermer">Annuler</button><button class="btn pri" data-a="lancerProposition">Proposer</button></div>`;
+}
+
+/* ===== Vue Recettes ===== */
+const FILTRES = [['tous', 'Toutes'], ['plat', 'Plats'], ['entree', 'Entrées'], ['dessert', 'Desserts'], ['poisson', 'Poisson'], ['volaille', 'Volaille'], ['viande', 'Viande'], ['vege', 'Végétarien'], ['legumineuses', 'Légumineuses'], ['saison', 'De saison'], ['fav', '★ Favoris'], ['perso', 'Mes recettes']];
+function vueRecettes() {
+  return `<div class="actions"><button class="btn pri" data-a="nouvelleRecette">＋ Nouvelle recette</button><button class="btn" data-a="avecStock">🧺 Que cuisiner avec mon stock ?</button></div>
+    <input type="search" class="recherche" placeholder="Rechercher une recette…" data-i="rq" value="${esc(UI.rq)}">
+    <div class="chips defil" style="margin:12px 0">${FILTRES.map(([k, l]) => `<button class="chip ${UI.rfiltre === k ? 'on' : ''}" data-a="rfiltre" data-f="${k}">${l}</button>`).join('')}</div>
+    <div id="rec-liste">${listeRecettes()}</div>
+    <p class="muted petit">Points estimés pour une portion « normale » (coefficient 1). AGS = acides gras saturés, la graisse à surveiller pour le cholestérol.</p>`;
+}
+function listeRecettes() {
+  const q = UI.rq.toLowerCase(), f = UI.rfiltre, saison = saisonDe(auj());
+  const rs = toutesRecettes().filter(r => {
+    if (q && !r.nom.toLowerCase().includes(q) && !r.i.some(([id]) => ING[id] && ING[id].nom.toLowerCase().includes(q))) return false;
+    if (f === 'tous') return true;
+    if (['plat', 'entree', 'dessert'].includes(f)) return r.cat === f;
+    if (f === 'saison') return r.saison.includes('toutes') || r.saison.includes(saison);
+    if (f === 'fav') return S.favoris.includes(r.id);
+    if (f === 'perso') return !!r.perso;
+    return r.tags.includes(f);
+  }).sort((a, b) => ['plat', 'entree', 'dessert'].indexOf(a.cat) - ['plat', 'entree', 'dessert'].indexOf(b.cat) || a.nom.localeCompare(b.nom, 'fr'));
+  if (!rs.length) return '<p class="muted centre">Aucune recette ne correspond.</p>';
+  return rs.map(r => carteRecette(r, 'voirRecette')).join('');
+}
+function modaleRecette() {
+  const r = REC[UI.recette]; if (!r) return '<p>Recette introuvable.</p>';
+  const n = nutrRecette(r), N = UI.portions;
+  let h = `<h2>${esc(r.nom)}</h2><div class="badges"><span class="badge g">${NOM_CAT[r.cat]}</span><span class="badge g">⏱ ${r.temps} min</span>${r.saison.map(s => `<span class="badge g">${NOM_SAISON[s]}</span>`).join('')}${r.tags.map(t => `<span class="badge g">${NOM_TAG[t]}</span>`).join('')}</div>`;
+  h += `<div class="nutri"><div><b>${Math.round(n.pts)}</b><span>points / portion</span></div><div><b>${Math.round(n.kcal)}</b><span>kcal</span></div>
+    <div><b style="color:${badgeAGS(n.ags) === 'r' ? 'var(--rouge)' : badgeAGS(n.ags) === 'o' ? '#8a6510' : 'var(--vert)'}">${nb(n.ags, 1)} g</b><span>graisses saturées</span></div>
+    <div><b>${Math.round(n.chol)} mg</b><span>cholestérol</span></div><div><b>${nb(n.fib, 1)} g</b><span>fibres</span></div><div><b>${nb(n.prot)} g</b><span>protéines</span></div></div>`;
+  const suivis = S.personnes.filter(p => p.suivi);
+  if (suivis.length) h += `<p class="petit">Pour chacun : ${suivis.map(p => `${esc(p.nom)} <b>${ptsPour(n.pts, p.coef)} pts</b>`).join(' · ')}</p>`;
+  h += `<div class="sec"><div class="ligne" style="margin-top:0"><span class="lbl" style="margin:0;flex:1">Ingrédients</span><button class="btn ic" data-a="portions" data-v="-1">−</button><b>${N} portion${N > 1 ? 's' : ''}</b><button class="btn ic" data-a="portions" data-v="1">＋</button></div>
+    <ul class="ingr">${r.i.map(([id, g]) => `<li><span>${esc(ING[id] ? ING[id].nom : id + ' (aliment inconnu)')}</span><span>${qteRecette(id, g * N)}</span></li>`).join('')}</ul></div>`;
+  h += `<div class="sec"><div class="lbl">Préparation</div><ol class="etapes">${r.e.map(x => `<li>${esc(x)}</li>`).join('')}</ol></div>`;
+  h += `<div class="actions"><button class="btn" data-a="favori">${S.favoris.includes(r.id) ? '★ Favori' : '☆ Ajouter aux favoris'}</button>
+    <button class="btn pri" data-a="ajouterAuMenu">📅 Mettre au menu</button>
+    ${r.perso ? '<button class="btn" data-a="modifierRecette">✎ Modifier</button><button class="btn del" data-a="supprimerRecette">Supprimer</button>' : '<button class="btn" data-a="copierRecette">✎ Copier pour l’adapter</button>'}</div>`;
+  return h;
+}
+function modaleAuMenu() {
+  return `<h2>Mettre au menu</h2><p><b>${esc(REC[UI.recette].nom)}</b></p>
+    <div class="champ"><span>Jour</span><input type="date" id="am-date" value="${UI.amDate || auj()}"></div>
+    <div class="chips"><button class="chip ${UI.amSlot !== 'din' ? 'on' : ''}" data-a="amSlot" data-s="dej">Midi</button><button class="chip ${UI.amSlot === 'din' ? 'on' : ''}" data-a="amSlot" data-s="din">Soir</button></div>
+    <div class="actions fin"><button class="btn" data-a="fermer">Annuler</button><button class="btn pri" data-a="validerAuMenu">Ajouter</button></div>`;
+}
+function modaleAvecStock() {
+  const res = [];
+  for (const r of toutesRecettes()) {
+    const utiles = r.i.filter(([id]) => ING[id] && ING[id].r !== 'pl' && ING[id].ul !== 'botte');
+    if (!utiles.length) continue;
+    const enStock = utiles.filter(([id]) => stockDe(id) > 0);
+    const urg = utiles.some(([id]) => urgents().some(s => s.ing === id));
+    const taux = enStock.length / utiles.length;
+    if (taux >= 0.34 || (urg && enStock.length)) res.push({ r, taux, urg, enStock: enStock.length, total: utiles.length });
+  }
+  res.sort((a, b) => (b.urg - a.urg) || (b.taux - a.taux));
+  let h = `<h2>🧺 Avec mon stock</h2><p class="muted petit">Recettes classées selon la part des ingrédients déjà à la maison (hors épices et condiments). ⏰ = utilise un produit à consommer vite.</p>`;
+  if (!S.stock.length) h += '<p>Votre stock est vide : ajoutez ce que vous avez dans l’onglet Stock.</p>';
+  else if (!res.length) h += '<p>Aucune recette ne correspond assez à votre stock.</p>';
+  h += res.slice(0, 15).map(x => `<button class="rec" data-a="voirRecette" data-r="${x.r.id}"><span class="t">${x.urg ? '⏰ ' : ''}${esc(x.r.nom)}<small>${x.enStock} ingrédient${x.enStock > 1 ? 's' : ''} sur ${x.total} déjà à la maison</small></span><span class="badge">${Math.round(x.taux * 100)} %</span></button>`).join('');
+  return h;
+}
+
+/* Éditeur de recette */
+function nouvelleRecetteVide() { return { id: 'rp_' + uid(), nom: '', cat: 'plat', tags: [], saison: ['toutes'], temps: 30, i: [], e: [], perso: true }; }
+function avertIng(id) { return id && !ING[id] ? `<div class="alerte petit">« ${esc(id)} » n’est pas dans la liste des aliments. <button class="lien" data-a="nouvelAliment" data-nom="${esc(id)}">Le créer</button></div>` : ''; }
+function badgesEditeur() {
+  const n = nutrListe(UI.edit.i.filter(([id]) => ING[id]));
+  return `<span class="badge">${Math.round(n.pts)} pts / portion</span><span class="badge ${badgeAGS(n.ags)} g">AGS ${nb(n.ags, 1)} g</span><span class="badge g">${Math.round(n.kcal)} kcal</span><span class="badge ${badgeChol(n.chol)} g">Chol. ${Math.round(n.chol)} mg</span>`;
+}
+function modaleEditeur() {
+  const r = UI.edit;
+  let h = `<h2>${S.recettesPerso.some(x => x.id === r.id) ? 'Modifier la recette' : 'Nouvelle recette'}</h2>
+    <div class="champ"><span>Nom</span><input type="text" data-c="ed-nom" value="${esc(r.nom)}" placeholder="Ex. : Gratin de courgettes de Maman"></div>
+    <div class="grille2"><label class="champ"><span>Catégorie</span><select data-c="ed-cat">${Object.entries(NOM_CAT).map(([k, l]) => `<option value="${k}" ${r.cat === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+    <label class="champ"><span>Temps (minutes)</span><input type="number" min="0" inputmode="numeric" data-c="ed-temps" value="${r.temps}"></label></div>
+    <div class="champ"><span>Type</span><div class="chips">${Object.entries(NOM_TAG).map(([k, l]) => `<button class="chip ${r.tags.includes(k) ? 'on' : ''}" data-a="edTag" data-t="${k}">${l}</button>`).join('')}</div></div>
+    <div class="champ"><span>Saison</span><div class="chips">${Object.entries(NOM_SAISON).map(([k, l]) => `<button class="chip ${r.saison.includes(k) ? 'on' : ''}" data-a="edSaison" data-t="${k}">${l}</button>`).join('')}</div></div>
+    <div class="sec"><div class="lbl">Ingrédients pour UNE portion</div>
+    <p class="muted petit">Choisissez l’aliment dans la liste, puis le poids en grammes (ou ml) pour une personne.</p>`;
+  r.i.forEach(([id, g], k) => {
+    const nom = ING[id] ? ING[id].nom : (id || '');
+    h += `<div class="ing-ligne"><input type="text" list="dl-ingr" data-c="ed-ing" data-k="${k}" value="${esc(nom)}" placeholder="Aliment"><input type="number" min="0" step="any" inputmode="decimal" data-i="ed-g" data-k="${k}" value="${g || ''}" placeholder="g"><button class="btn ic del" data-a="edRetirerIng" data-k="${k}">✕</button></div>
+      <div id="ed-w-${k}">${avertIng(id)}</div>`;
+  });
+  h += `<div class="actions"><button class="btn" data-a="edAjouterIng">＋ Ingrédient</button><button class="btn" data-a="nouvelAliment">＋ Nouvel aliment</button></div>
+    <div class="badges" id="ed-nutri">${badgesEditeur()}</div></div>
+    <div class="champ"><span>Préparation (une étape par ligne)</span><textarea data-c="ed-etapes">${esc(r.e.join('\n'))}</textarea></div>
+    <div class="actions fin"><button class="btn" data-a="fermer">Annuler</button><button class="btn pri" data-a="edEnregistrer">Enregistrer</button></div>`;
+  return h;
+}
+function modaleAliment() {
+  const a = UI.aliment;
+  const champ = (k, l, v) => `<label class="champ"><span>${l}</span><input type="number" min="0" step="any" inputmode="decimal" data-c="al-n" data-k="${k}" value="${v}"></label>`;
+  return `<h2>Nouvel aliment</h2>
+    <div class="champ"><span>Nom</span><input type="text" data-c="al-nom" value="${esc(a.nom)}"></div>
+    <div class="grille2"><label class="champ"><span>Rayon</span><select data-c="al-r">${RAYON_ORDRE.map(r => `<option value="${r}" ${a.r === r ? 'selected' : ''}>${RAYONS[r]}</option>`).join('')}</select></label>
+    <label class="champ"><span>S’achète</span><select data-c="al-u"><option value="g" ${a.u === 'g' ? 'selected' : ''}>au poids (g)</option><option value="ml" ${a.u === 'ml' ? 'selected' : ''}>en volume (ml)</option><option value="pc" ${a.u === 'pc' ? 'selected' : ''}>à la pièce</option></select></label></div>
+    ${a.u === 'pc' ? `<label class="champ"><span>Poids d’une pièce (g)</span><input type="number" min="1" data-c="al-pc" value="${a.pc || 100}"></label>` : ''}
+    <div class="lbl" style="margin-top:12px">Valeurs pour 100 g (étiquette ou table Ciqual)</div>
+    <div class="grille3">${champ(0, 'Calories (kcal)', a.n[0])}${champ(1, 'Protéines (g)', a.n[1])}${champ(2, 'dont saturés (g)', a.n[2])}${champ(3, 'Sucres (g)', a.n[3])}${champ(4, 'Fibres (g)', a.n[4])}${champ(5, 'Cholestérol (mg)', a.n[5])}</div>
+    <label class="switch"><input type="checkbox" data-c="al-z" ${a.z ? 'checked' : ''}> Fruit ou légume frais (0 point)</label>
+    <div class="actions fin"><button class="btn" data-a="fermer">Annuler</button><button class="btn pri" data-a="alEnregistrer">Enregistrer l’aliment</button></div>`;
+}
+
+/* ===== Vue Courses ===== */
+function vueCourses() {
+  const c = S.courses;
+  let h = `<div class="carte"><div class="lbl">Courses pour la période</div>
+    <div class="ligne-dates"><label>du <input type="date" id="c-du" value="${c.du || auj()}"></label><label>au <input type="date" id="c-au" value="${c.au || addDays(auj(), 6)}"></label></div>
+    <button class="btn pri large" data-a="genererListe">🛒 Calculer la liste d’après les menus</button>
+    <p class="muted petit">Les quantités tiennent compte des personnes présentes à chaque repas et de ce qui est déjà dans le stock. Vos articles ajoutés à la main sont conservés.</p></div>`;
+  const groupes = articlesParRayon(false);
+  if (!groupes.length) h += '<p class="muted centre">La liste est vide. Choisissez des menus, puis touchez « Calculer la liste ».</p>';
+  for (const [r, its] of groupes) {
+    h += `<h3>${RAYONS[r]}</h3><div class="groupe">${its.map(it => `<div class="article ${it.coche ? 'coche' : ''}" data-a="cocher" data-id="${it.id}" role="button"><span class="case">${it.coche ? '✓' : ''}</span><span class="art-nom">${esc(nomArticle(it))}</span><span class="art-qte">${esc(qteArticle(it))}</span><button class="btn ic del art-x" data-a="retirerArticle" data-id="${it.id}" aria-label="Retirer">✕</button></div>`).join('')}</div>`;
+  }
+  if (c.deja && c.deja.length) h += `<p class="muted petit" style="margin-top:14px">Déjà en stock, non ajouté : ${c.deja.map(id => ING[id] ? ING[id].nom : id).join(', ')}.</p>`;
+  h += `<div class="carte"><div class="lbl">Ajouter un article</div>
+    <div class="ing-ligne" style="grid-template-columns:1fr 1fr"><input type="text" id="m-nom" list="dl-ingr" placeholder="Ex. : café, papier toilette…"><input type="text" id="m-qte" placeholder="Quantité (facultatif)"></div>
+    <div class="ligne"><select id="m-r">${RAYON_ORDRE.map(r => `<option value="${r}" ${r === 'dv' ? 'selected' : ''}>${RAYONS[r]}</option>`).join('')}</select><button class="btn pri" data-a="ajouterArticle">Ajouter</button></div></div>`;
+  if (c.items.length) h += `<div class="actions"><button class="btn pri" data-a="scanOuvrir">📷 Scanner les achats au retour</button><button class="btn" data-a="partagerListe">📤 Envoyer la liste</button><button class="btn" data-a="imprimerListe">🖨 Imprimer</button>
+    <button class="btn" data-a="rangerCoches">🧺 Ranger les articles cochés dans le stock</button><button class="btn" data-a="effacerCoches">Effacer les cochés</button><button class="btn del" data-a="viderListe">Tout effacer</button></div>`;
+  return h;
+}
+
+/* ===== Vue Stock ===== */
+function vueStock() {
+  let h = `<button class="btn pri large" data-a="scanOuvrir" style="margin-top:4px">📷 Scanner les courses</button>`;
+  if (S.scan.length) { const n = S.scan.reduce((t, x) => t + x.n, 0); h += `<div class="alerte">🧾 ${n} produit${n > 1 ? 's scannés pas encore rangés' : ' scanné pas encore rangé'}. <button class="lien" data-a="scanVoir">Voir et ranger</button></div>`; }
+  h += `<div class="actions"><button class="btn" data-a="ajoutStock">＋ Ajouter à la main</button><button class="btn" data-a="avecStock">Que cuisiner avec ?</button></div>`;
+  const u = urgents();
+  if (u.length) h += `<div class="alerte">⏰ À consommer d’ici 2 jours : ${u.map(s => esc(nomStock(s))).join(', ')}</div>`;
+  if (!S.stock.length) h += '<p class="muted centre">Le stock est vide. Au retour des courses, touchez « Scanner les courses » et passez chaque produit devant l’appareil photo. Vous pouvez aussi ajouter un aliment à la main.</p>';
+  for (const [lieu, nom] of Object.entries(LIEUX)) {
+    const its = S.stock.filter(s => s.lieu === lieu).sort((a, b) => nomStock(a).localeCompare(nomStock(b), 'fr'));
+    if (!its.length) continue;
+    h += `<h3>${nom}</h3><div class="groupe">${its.map(s => {
+      const i = ING[s.ing]; const j = s.dlc ? ecartJours(auj(), s.dlc) : null;
+      const dlc = s.dlc ? `<span class="badge ${j <= 0 ? 'r' : j <= 2 ? 'o' : 'g'}">${j < 0 ? 'dépassée' : j === 0 ? 'aujourd’hui' : 'DLC ' + fmtDate(s.dlc, { day: 'numeric', month: 'short' })}</span>` : '';
+      return `<div class="article st" style="cursor:default"><span class="art-nom">${esc(nomStock(s))} ${dlc}</span><span class="st-ctl"><span class="art-qte">${qteStock(s)}</span>
+        ${i && i.u === 'pc' ? `<button class="btn ic" data-a="stockPlus" data-id="${s.id}" data-v="-1">−</button><button class="btn ic" data-a="stockPlus" data-id="${s.id}" data-v="1">＋</button>` : ''}
+        <button class="btn ic" data-a="editStock" data-id="${s.id}" aria-label="Modifier">✎</button></span></div>`;
+    }).join('')}</div>`;
+  }
+  return h;
+}
+const nomStock = s => s.ing ? (ING[s.ing] ? ING[s.ing].nom : s.ing) : (s.nom || '');
+function noteStock(e) { return !e.ing && e.nom ? 'Cet article n’est pas dans la liste des aliments : il sera gardé pour mémoire, sans calcul.' : ''; }
+function modaleStock() {
+  const e = UI.stockEdit; const i = ING[e.ing];
+  return `<h2>${e.id ? 'Modifier' : 'Ajouter au stock'}</h2>
+    <div class="champ"><span>Aliment</span><input type="text" list="dl-ingr" data-i="st-nom" value="${esc(i ? i.nom : e.nom || '')}" placeholder="Choisir dans la liste"></div>
+    <div class="grille2"><label class="champ"><span>Quantité <span id="st-unite" class="muted">${e.ing ? '(' + uniteSaisie(e.ing) + ')' : ''}</span></span><input type="number" min="0" step="any" inputmode="decimal" data-i="st-q" value="${e.q || ''}"></label>
+    <label class="champ"><span>Où ?</span><select id="st-lieu" data-i="st-lieu">${Object.entries(LIEUX).map(([k, l]) => `<option value="${k}" ${e.lieu === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label></div>
+    <label class="champ"><span>À consommer avant (facultatif)</span><input type="date" data-i="st-dlc" value="${e.dlc || ''}"></label>
+    <p class="muted petit" id="st-note">${noteStock(e)}</p>
+    <div class="actions fin">${e.id ? '<button class="btn del" data-a="supprStock">Supprimer</button>' : ''}<button class="btn" data-a="fermer">Annuler</button><button class="btn pri" data-a="validerStock">Enregistrer</button></div>`;
+}
+
+/* ===== Vue Points ===== */
+function vuePoints() {
+  const suivis = S.personnes.filter(p => p.suivi);
+  if (!suivis.length) return '<p class="carte">Personne n’a le suivi des points activé. Allez dans l’onglet Foyer pour l’activer.</p>';
+  if (!suivis.some(p => p.id === UI.ppers)) UI.ppers = suivis.find(p => p.id === 'p2') ? 'p2' : suivis[0].id;
+  const p = personne(UI.ppers), d = UI.pdate;
+  const jour = bilanJour(p, d);
+  const reste = p.budget - jour.pts;
+  let h = `<div class="chips">${suivis.map(x => `<button class="chip ${x.id === p.id ? 'on' : ''}" data-a="ppers" data-p="${x.id}">${esc(x.nom)}</button>`).join('')}</div>
+    <div class="barre" style="margin-top:12px"><button class="btn ic" data-a="pjour" data-v="-1">◀</button><div class="titre-sem">${cap(fmtDate(d))}</div><button class="btn ic" data-a="pjour" data-v="1">▶</button></div>
+    ${d !== auj() ? '<div class="actions"><button class="btn petit" data-a="pAuj">Revenir à aujourd’hui</button></div>' : ''}
+    <div class="carte"><div class="compteur"><div><div class="gros ${reste < 0 ? 'neg' : ''}">${reste}</div><div class="muted">points restants</div></div>
+    <div class="muted" style="margin-left:auto;text-align:right">${jour.pts} utilisés<br>sur ${p.budget} par jour</div></div>
+    <div class="jauge ${reste < 0 ? 'trop' : ''}"><div style="width:${Math.min(100, p.budget ? jour.pts / p.budget * 100 : 0)}%"></div></div>
+    <div class="badges"><span class="badge ${jour.ags > p.agsMax ? 'r' : ''} g">Graisses saturées ${nb(jour.ags, 1)} g / repère ${p.agsMax} g</span><span class="badge g">Cholestérol ${Math.round(jour.chol)} mg</span><span class="badge g">≈ ${Math.round(jour.kcal)} kcal</span></div></div>`;
+  h += `<div class="carte">`;
+  for (const s of ['dej', 'din']) {
+    const m = repas(d, s), x = ptsRepasPersonne(d, s, p);
+    let det = '';
+    if (m && m.dehors) det = '<span class="muted">pas à la maison</span>';
+    else if (!m || !m.items.length) det = '<span class="muted">rien de prévu</span>';
+    else if (!x) det = '<span class="muted">absent(e)</span>';
+    else det = m.items.map(rid => REC[rid] ? esc(REC[rid].nom) : '').join(' + ');
+    h += `<div class="ligne-pts"><span class="t"><b>${s === 'dej' ? 'Midi' : 'Soir'}</b> · ${det}</span>${x ? `<span class="badge">${x.pts} pts</span>` : ''}</div>`;
+  }
+  const ex = ((S.extras[d] || {})[p.id]) || [];
+  ex.forEach(e => { h += `<div class="ligne-pts"><span class="t">${esc(e.label)}</span><span class="badge">${e.pts} pts</span><button class="btn ic del" data-a="retirerExtra" data-id="${e.id}">✕</button></div>`; });
+  h += `<div class="actions"><button class="btn pri" data-a="ajoutExtra">＋ Petit-déjeuner, en-cas…</button></div>`;
+  const rec = S.recents.slice(0, 8);
+  if (rec.length) h += `<div class="lbl petit" style="margin-top:6px">Ajout rapide</div><div class="chips">${rec.map((e, k) => `<button class="chip" data-a="extraRapide" data-k="${k}">${esc(e.label)} · ${e.pts}</button>`).join('')}</div>`;
+  h += `</div>`;
+  // semaine
+  const lun = lundiDe(d);
+  h += `<div class="carte"><div class="lbl">Semaine</div>`;
+  let tot = 0;
+  for (let k = 0; k < 7; k++) {
+    const dd = addDays(lun, k), b = bilanJour(p, dd); tot += b.pts;
+    h += `<div class="mini"><span>${cap(fmtDate(dd, { weekday: 'short', day: 'numeric' }))}</span><div class="barre-m ${b.pts > p.budget ? 'trop' : ''}"><div style="width:${Math.min(100, p.budget ? b.pts / p.budget * 100 : 0)}%"></div></div><b style="text-align:right">${b.pts}</b></div>`;
+  }
+  h += `<p class="muted petit">Total de la semaine : ${tot} points pour ${p.budget * 7} prévus.</p></div>`;
+  h += `<p class="muted petit">Points estimés avec une formule proche de celle de Weight Watchers (calories, graisses saturées, sucres, protéines)${S.options.zeroFL ? ', fruits et légumes frais à 0 point' : ''}. Ce ne sont pas les points officiels.</p>`;
+  return h;
+}
+function bilanJour(p, d) {
+  const t = { pts: 0, ags: 0, chol: 0, kcal: 0 };
+  for (const s of ['dej', 'din']) { const x = ptsRepasPersonne(d, s, p); if (x) { t.pts += x.pts; t.ags += x.ags; t.chol += x.chol; t.kcal += x.kcal; } }
+  for (const e of ((S.extras[d] || {})[p.id]) || []) { t.pts += e.pts; t.ags += e.ags || 0; t.chol += e.chol || 0; t.kcal += e.kcal || 0; }
+  return t;
+}
+function modaleExtra() {
+  const x = UI.extra; const p = personne(UI.ppers);
+  let apercu = calculExtra();
+  return `<h2>Ajouter pour ${esc(p.nom)}</h2>
+    <div class="chips">${[['aliment', 'Un aliment'], ['recette', 'Une recette'], ['points', 'Des points']].map(([k, l]) => `<button class="chip ${x.mode === k ? 'on' : ''}" data-a="exMode" data-m="${k}">${l}</button>`).join('')}</div>
+    ${x.mode === 'aliment' ? `<div class="champ"><span>Aliment</span><input type="text" list="dl-ingr" data-i="ex-nom" value="${esc(x.nom)}" placeholder="Ex. : pain complet"></div><div class="champ"><span>Quantité (g ou ml)</span><input type="number" min="0" step="any" inputmode="decimal" data-i="ex-g" value="${x.g || ''}"></div>` : ''}
+    ${x.mode === 'recette' ? `<div class="champ"><span>Recette</span><input type="text" list="dl-rec" data-i="ex-rec" value="${esc(x.rec)}"></div><div class="champ"><span>Portion</span><div class="chips">${[0.5, 0.75, 1, 1.5].map(v => `<button class="chip ${x.coef === v ? 'on' : ''}" data-a="exCoef" data-v="${v}">× ${nb(v, 2)}</button>`).join('')}</div></div>` : ''}
+    ${x.mode === 'points' ? `<div class="champ"><span>Description</span><input type="text" data-i="ex-label" value="${esc(x.label)}" placeholder="Ex. : petit-déjeuner habituel"></div><div class="champ"><span>Points</span><input type="number" min="0" inputmode="numeric" data-i="ex-pts" value="${x.pts === '' ? '' : x.pts}"></div>` : ''}
+    <div class="info" id="ex-apercu">${apercuExtra()}</div>
+    <div class="actions fin"><button class="btn" data-a="fermer">Annuler</button><button class="btn pri" id="ex-ok" data-a="validerExtra" ${apercu ? '' : 'disabled'}>Ajouter</button></div>`;
+}
+function calculExtra() {
+  const x = UI.extra; const p = personne(UI.ppers);
+  if (x.mode === 'aliment') {
+    const a = alimentParNom(x.nom); if (!a || !(x.g > 0)) return null;
+    const n = nutrListe([[a.id, x.g]]);
+    return { label: `${a.nom} ${nb(x.g)} ${a.u === 'ml' ? 'ml' : 'g'}`, pts: Math.round(n.pts), ags: n.ags, chol: n.chol, kcal: n.kcal };
+  }
+  if (x.mode === 'recette') {
+    const r = recetteParNom(x.rec); if (!r) return null;
+    const n = nutrRecette(r);
+    return { label: `${r.nom}${x.coef !== 1 ? ' × ' + nb(x.coef, 2) : ''}`, pts: ptsPour(n.pts, x.coef), ags: n.ags * x.coef, chol: n.chol * x.coef, kcal: n.kcal * x.coef };
+  }
+  if (!x.label || !(x.pts >= 0) || x.pts === '') return null;
+  return { label: x.label, pts: Math.round(x.pts), ags: 0, chol: 0, kcal: 0 };
+}
+
+/* ===== Vue Foyer ===== */
+function vueFoyer() {
+  let h = `<h3>Les personnes</h3>`;
+  for (const p of S.personnes) {
+    h += `<div class="carte"><div class="grille2"><label class="champ"><span>Prénom</span><input type="text" data-c="pe-nom" data-p="${p.id}" value="${esc(p.nom)}"></label>
+      <label class="champ"><span>Taille de portion</span><select data-c="pe-coef" data-p="${p.id}">${[0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6].map(v => `<option value="${v}" ${Math.abs(p.coef - v) < 0.01 ? 'selected' : ''}>× ${nb(v, 1)}${v === 1 ? ' (normale)' : v < 1 ? ' (petite)' : ' (grande)'}</option>`).join('')}</select></label></div>
+      <label class="switch"><input type="checkbox" data-c="pe-defaut" data-p="${p.id}" ${p.presentDefaut ? 'checked' : ''}> Présent(e) tous les jours</label>
+      <label class="switch"><input type="checkbox" data-c="pe-suivi" data-p="${p.id}" ${p.suivi ? 'checked' : ''}> Compter ses points</label>
+      ${p.suivi ? `<div class="grille2"><label class="champ"><span>Points par jour</span><input type="number" min="0" inputmode="numeric" data-c="pe-budget" data-p="${p.id}" value="${p.budget}"></label>
+      <label class="champ"><span>Repère graisses saturées (g/jour)</span><input type="number" min="0" inputmode="numeric" data-c="pe-ags" data-p="${p.id}" value="${p.agsMax}"></label></div>` : ''}
+      ${S.personnes.length > 1 ? `<div class="actions fin" style="margin-top:4px"><button class="btn del petit" data-a="supprPersonne" data-p="${p.id}">Retirer cette personne</button></div>` : ''}</div>`;
+  }
+  h += `<div class="actions"><button class="btn" data-a="ajoutPersonne">＋ Ajouter une personne</button></div>`;
+  const nonDefaut = S.personnes.filter(p => !p.presentDefaut);
+  h += `<h3>Séjours des enfants</h3><div class="carte">`;
+  if (!nonDefaut.length) h += '<p class="muted">Toutes les personnes sont présentes tous les jours.</p>';
+  else {
+    h += `<div class="champ"><span>Qui vient ?</span><div class="chips">${nonDefaut.map(p => `<button class="chip ${(UI.sejQui || []).includes(p.id) ? 'on' : ''}" data-a="sejQui" data-p="${p.id}">${esc(p.nom)}</button>`).join('')}</div></div>
+      <div class="ligne-dates"><label>du <input type="date" id="sej-du" value="${UI.sejDu || auj()}"></label><label>au <input type="date" id="sej-au" value="${UI.sejAu || addDays(auj(), 3)}"></label></div>
+      <button class="btn pri" data-a="ajoutSejour">Ajouter le séjour</button>`;
+    const avenir = S.sejours.filter(s => s.au >= auj()).sort((a, b) => a.du < b.du ? -1 : 1);
+    if (avenir.length) h += `<div style="margin-top:14px">${avenir.map(s => `<div class="ligne-pts"><span class="t"><b>${esc(personne(s.pid) ? personne(s.pid).nom : '?')}</b> · du ${fmtDate(s.du, { weekday: 'short', day: 'numeric', month: 'short' })} au ${fmtDate(s.au, { weekday: 'short', day: 'numeric', month: 'short' })}</span><button class="btn ic del" data-a="supprSejour" data-id="${s.id}">✕</button></div>`).join('')}</div>`;
+  }
+  h += `</div>`;
+  h += `<h3>Réglages</h3><div class="carte">
+    <label class="switch"><input type="checkbox" data-c="opt-zero" ${S.options.zeroFL ? 'checked' : ''}> Fruits et légumes frais à 0 point (comme Weight Watchers)</label></div>`;
+  h += `<h3>Partager avec l’autre appareil</h3><div class="carte">
+    <p>L’application n’a pas de serveur : chaque appareil (iPad, iPhone) garde ses propres données. Pour que votre femme ait exactement les mêmes menus, la même liste et le même stock :</p>
+    <ol class="etapes"><li>Touchez « Envoyer toutes les données » et choisissez AirDrop, Messages ou Mail.</li><li>Sur son appareil, enregistrez le fichier dans Fichiers.</li><li>Dans son application : Foyer › « Recevoir des données » et choisissez le fichier.</li></ol>
+    <div class="actions"><button class="btn pri" data-a="exporter">📤 Envoyer toutes les données</button><button class="btn" data-a="importer">📥 Recevoir des données</button></div>
+    <p class="muted petit">Pour la liste de courses seule, utilisez « Envoyer la liste » dans l’onglet Courses.${S.derniereSauvegarde ? ' Dernier envoi : ' + new Date(S.derniereSauvegarde).toLocaleDateString('fr-FR') + '.' : ''} Ce fichier sert aussi de sauvegarde : gardez-en un dans Fichiers de temps en temps.</p>
+    <input type="file" id="fichier-import" accept=".json,application/json" style="display:none"></div>`;
+  h += `<h3>À propos des calculs</h3><div class="carte petit">
+    <p><b>Points</b> : estimation avec la formule publique proche des « SmartPoints » de Weight Watchers (calories × 0,0305 + graisses saturées × 0,275 + sucres × 0,12 − protéines × 0,098), sur le total de la recette. Ce ne sont pas les points officiels de l’application WW, mais ils permettent de comparer les repas et de tenir un budget quotidien.</p>
+    <p><b>Valeurs nutritionnelles</b> : ordres de grandeur pour 100 g d’aliment cru, du type de la table Ciqual de l’ANSES. Vous pouvez créer vos propres aliments avec les valeurs de l’étiquette.</p>
+    <p><b>Cholestérol</b> : le repère par défaut des graisses saturées correspond à environ 7 % des calories de la journée, valeur souvent conseillée en cas de cholestérol élevé. Ajustez-le avec votre médecin. Pastilles : vert ≤ 3 g par portion, orange ≤ 5 g, rouge au-delà.</p>
+    <p><b>Codes-barres</b> : les informations sur les produits viennent d’Open Food Facts, base de données libre et collaborative. L’aliment correspondant est proposé automatiquement ; vos corrections sont retenues et un produit déjà rangé est reconnu ensuite sans connexion. Les produits pesés en magasin (étiquette de balance) demandent le poids à chaque fois.</p>
+    <p class="muted">Popote version ${VERSION}</p></div>`;
+  return h;
+}
+
+/* ---------- Listes de suggestions (datalist) ---------- */
+function majDatalists() {
+  $('#dl-ingr').innerHTML = tousAliments().map(i => `<option value="${esc(i.nom)}"></option>`).join('');
+  $('#dl-rec').innerHTML = toutesRecettes().sort((a, b) => a.nom.localeCompare(b.nom, 'fr')).map(r => `<option value="${esc(r.nom)}"></option>`).join('');
+}
+
+/* ---------- Actions (clics) ---------- */
+const A = {
+  onglet: el => { UI.onglet = el.dataset.o; rendre(); window.scrollTo(0, 0); },
+  fermer: () => fermer(),
+  confirmerOK: () => { const f = UI.confirmAction; UI.confirmAction = null; UI.pile.pop(); dessinerModale(); if (f && f() === 'tout') { UI.pile = []; dessinerModale(); } rendre(); },
+  // Menus
+  sem: el => { UI.semaine = addDays(UI.semaine, +el.dataset.v); rendre(); },
+  semAuj: () => { UI.semaine = lundiDe(auj()); rendre(); },
+  ouvrirSlot: el => { UI.slot = { d: el.dataset.d, s: el.dataset.s }; ouvrir(modaleSlot); },
+  presence: el => {
+    const { d, s } = UI.slot, m = repas(d, s, true), p = personne(el.dataset.p);
+    const estLa = presentsRepas(d, s).some(x => x.id === p.id);
+    m.absents = m.absents.filter(x => x !== p.id); m.ajoutes = m.ajoutes.filter(x => x !== p.id);
+    if (estLa) { if (estPresent(p, d)) m.absents.push(p.id); } else if (!estPresent(p, d)) m.ajoutes.push(p.id);
+    sauver(); rafraichirModale();
+  },
+  invites: el => { const m = repas(UI.slot.d, UI.slot.s, true); m.invites = Math.max(0, m.invites + +el.dataset.v); sauver(); rafraichirModale(); },
+  retirerItem: el => { const m = repas(UI.slot.d, UI.slot.s, true); m.items.splice(+el.dataset.i, 1); sauver(); rafraichirModale(); },
+  choisir: el => { UI.choixCat = el.dataset.cat; UI.choixQ = ''; ouvrir(modaleChoix); },
+  choixCat: el => { UI.choixCat = el.dataset.cat; rafraichirModale(); },
+  prendre: el => { const m = repas(UI.slot.d, UI.slot.s, true); m.items.push(el.dataset.r); m.dehors = false; sauver(); UI.pile.pop(); dessinerModale(); },
+  viderSlot: () => { const { d, s } = UI.slot; const m = repas(d, s, true); if (m.cuisine) restaurerStock(d, s); delete S.repas[d][s]; sauver(); fermer(); },
+  proposer: () => ouvrir(modaleProposer),
+  lancerProposition: () => {
+    const opts = { remplacer: $('#pr-remplacer').checked, entree: $('#pr-entree').checked, dessert: $('#pr-dessert').checked };
+    S.options.entreeSoir = opts.entree; S.options.dessertMidi = opts.dessert;
+    const n = proposerSemaine(UI.semaine, opts); sauver(); fermerTout();
+    toast(n ? `${n} repas proposés. Touchez un repas pour le changer.` : 'Tous les repas étaient déjà choisis.');
+  },
+  listeSemaine: () => { const du = UI.semaine < auj() && auj() <= addDays(UI.semaine, 6) ? auj() : UI.semaine; genererListe(du, addDays(UI.semaine, 6)); sauver(); UI.onglet = 'courses'; rendre(); window.scrollTo(0, 0); toast('Liste calculée.'); },
+  // Recettes
+  rfiltre: el => { UI.rfiltre = el.dataset.f; rendre(); },
+  voirRecette: el => { UI.recette = el.dataset.r; UI.portions = Math.max(1, Math.round(S.personnes.filter(p => p.presentDefaut).length)); ouvrir(modaleRecette); },
+  portions: el => { UI.portions = Math.max(1, Math.min(20, UI.portions + +el.dataset.v)); rafraichirModale(); },
+  favori: () => { const id = UI.recette; S.favoris = S.favoris.includes(id) ? S.favoris.filter(x => x !== id) : [...S.favoris, id]; sauver(); rafraichirModale(); },
+  ajouterAuMenu: () => { UI.amDate = auj(); UI.amSlot = REC[UI.recette].cat === 'dessert' ? 'dej' : 'din'; ouvrir(modaleAuMenu); },
+  amSlot: el => { UI.amDate = $('#am-date').value || UI.amDate; UI.amSlot = el.dataset.s; rafraichirModale(); },
+  validerAuMenu: () => {
+    const d = $('#am-date').value; if (!d) return toast('Choisissez un jour.');
+    const m = repas(d, UI.amSlot || 'dej', true); m.items.push(UI.recette); m.dehors = false; sauver();
+    UI.pile.pop(); dessinerModale(); toast('Ajouté au menu du ' + fmtDate(d, { weekday: 'long', day: 'numeric' }) + (UI.amSlot === 'din' ? ' soir' : ' midi') + '.');
+  },
+  avecStock: () => ouvrir(modaleAvecStock),
+  nouvelleRecette: () => { UI.edit = nouvelleRecetteVide(); UI.edit.i = [['', 0]]; ouvrir(modaleEditeur); },
+  copierRecette: () => { const r = REC[UI.recette]; UI.edit = JSON.parse(JSON.stringify(r)); UI.edit.id = 'rp_' + uid(); UI.edit.nom = r.nom + ' (ma version)'; UI.edit.perso = true; ouvrir(modaleEditeur); },
+  modifierRecette: () => { UI.edit = JSON.parse(JSON.stringify(REC[UI.recette])); ouvrir(modaleEditeur); },
+  supprimerRecette: () => confirmer('Supprimer définitivement la recette « ' + esc(REC[UI.recette].nom) + ' » ?', 'Supprimer', () => {
+    const id = UI.recette; S.recettesPerso = S.recettesPerso.filter(r => r.id !== id); S.favoris = S.favoris.filter(x => x !== id);
+    for (const d in S.repas) for (const s in S.repas[d]) S.repas[d][s].items = S.repas[d][s].items.filter(x => x !== id);
+    reindexer(); majDatalists(); sauver(); UI.pile = []; dessinerModale();
+  }, true),
+  edTag: el => { const t = el.dataset.t, r = UI.edit; r.tags = r.tags.includes(t) ? r.tags.filter(x => x !== t) : [...r.tags, t]; rafraichirModale(); },
+  edSaison: el => {
+    const t = el.dataset.t, r = UI.edit;
+    if (t === 'toutes') r.saison = ['toutes'];
+    else { r.saison = r.saison.filter(x => x !== 'toutes'); r.saison = r.saison.includes(t) ? r.saison.filter(x => x !== t) : [...r.saison, t]; if (!r.saison.length) r.saison = ['toutes']; }
+    rafraichirModale();
+  },
+  edAjouterIng: () => { UI.edit.i.push(['', 0]); rafraichirModale(); },
+  edRetirerIng: el => { UI.edit.i.splice(+el.dataset.k, 1); rafraichirModale(); },
+  edEnregistrer: () => {
+    const r = UI.edit;
+    r.i = r.i.filter(([id, g]) => id && g > 0);
+    if (!r.nom.trim()) { rafraichirModale(); return toast('Donnez un nom à la recette.'); }
+    const inconnus = r.i.filter(([id]) => !ING[id]);
+    if (inconnus.length) { rafraichirModale(); return toast('Créez d’abord les aliments inconnus (en orange).'); }
+    if (!r.i.length) { r.i.push(['', 0]); rafraichirModale(); return toast('Ajoutez au moins un ingrédient avec son poids.'); }
+    r.nom = r.nom.trim(); r.perso = true;
+    const k = S.recettesPerso.findIndex(x => x.id === r.id);
+    if (k >= 0) S.recettesPerso[k] = r; else S.recettesPerso.push(r);
+    reindexer(); majDatalists(); sauver();
+    UI.recette = r.id; UI.pile = []; UI.portions = 2; ouvrir(modaleRecette); toast('Recette enregistrée.');
+  },
+  nouvelAliment: el => { UI.aliment = { nom: el.dataset.nom || '', r: 'fl', u: 'g', pc: 100, n: [0, 0, 0, 0, 0, 0], z: false }; ouvrir(modaleAliment); },
+  alEnregistrer: () => {
+    const a = UI.aliment;
+    if (!a.nom.trim()) return toast('Donnez un nom à l’aliment.');
+    if (alimentParNom(a.nom)) return toast('Cet aliment existe déjà.');
+    const nouv = { id: 'ip_' + uid(), nom: a.nom.trim(), r: a.r, n: a.n.map(Number), u: a.u };
+    if (a.u === 'pc') nouv.pc = Number(a.pc) || 100;
+    if (a.z) nouv.z = 1;
+    S.ingrPerso.push(nouv); reindexer(); majDatalists(); sauver();
+    if (UI.edit) UI.edit.i = UI.edit.i.map(([id, g]) => [String(id).toLowerCase() === nouv.nom.toLowerCase() ? nouv.id : id, g]);
+    UI.pile.pop(); dessinerModale(); toast('Aliment ajouté.');
+  },
+  // Courses
+  genererListe: () => {
+    const du = $('#c-du').value, au = $('#c-au').value;
+    if (!du || !au || au < du) return toast('Vérifiez les dates.');
+    genererListe(du, au); sauver(); rendre();
+    toast(S.courses.items.filter(x => !x.manuel).length ? 'Liste calculée.' : 'Aucun repas prévu sur cette période (ou tout est en stock).');
+  },
+  cocher: (el, ev) => { if (ev.target.closest('.art-x')) return; const it = S.courses.items.find(x => x.id === el.dataset.id); if (it) { it.coche = !it.coche; sauver(); rendre(); } },
+  retirerArticle: el => { S.courses.items = S.courses.items.filter(x => x.id !== el.dataset.id); sauver(); rendre(); },
+  ajouterArticle: () => {
+    const nom = $('#m-nom').value.trim(); if (!nom) return toast('Écrivez le nom de l’article.');
+    const a = alimentParNom(nom); const txt = $('#m-qte').value.trim();
+    S.courses.items.push({ id: uid(), ing: a ? a.id : null, nom: a ? a.nom : nom, txt, g: 0, r: a ? a.r : $('#m-r').value, coche: false, manuel: true });
+    sauver(); rendre(); toast('Ajouté.');
+  },
+  effacerCoches: () => { S.courses.items = S.courses.items.filter(x => !x.coche); sauver(); rendre(); },
+  viderListe: () => confirmer('Effacer toute la liste de courses ?', 'Tout effacer', () => { S.courses.items = []; S.courses.deja = []; sauver(); }, true),
+  rangerCoches: () => {
+    const coches = S.courses.items.filter(x => x.coche);
+    if (!coches.length) return toast('Cochez d’abord les articles achetés.');
+    let n = 0;
+    for (const it of coches) {
+      if (!it.ing || !ING[it.ing] || it.manuel) continue;
+      const i = ING[it.ing]; let g = it.g;
+      if (i.u === 'pc') g = Math.max(1, Math.ceil(it.g / i.pc - 0.2)) * i.pc;
+      else g = it.g < 100 ? Math.ceil(it.g / 5) * 5 : Math.ceil(it.g / 10) * 10;
+      ajouterAuStock(it.ing, g, lieuParDefaut(it.ing), null); n++;
+    }
+    S.courses.items = S.courses.items.filter(x => !x.coche); sauver(); rendre();
+    toast(n + ' article' + (n > 1 ? 's rangés' : ' rangé') + ' dans le stock.');
+  },
+  partagerListe: async () => {
+    const t = texteListe();
+    try { if (navigator.share) { await navigator.share({ title: 'Liste de courses', text: t }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+    try { await navigator.clipboard.writeText(t); toast('Liste copiée : collez-la dans Messages ou Notes.'); return; } catch (e) { }
+    ouvrir(() => `<h2>Liste de courses</h2><p class="muted petit">Sélectionnez le texte et copiez-le.</p><textarea style="min-height:50vh">${esc(t)}</textarea>`);
+  },
+  imprimerListe: () => {
+    if (APERCU) return toast(MSG_APERCU);
+    const c = S.courses;
+    let h = `<h1>Liste de courses${c.du ? ' – du ' + fmtDate(c.du, { day: 'numeric', month: 'long' }) + ' au ' + fmtDate(c.au, { day: 'numeric', month: 'long' }) : ''}</h1>`;
+    for (const [r, its] of articlesParRayon(true)) h += `<h2>${RAYONS[r]}</h2>` + its.map(it => `<div class="l"><span class="c"></span><span>${esc(nomArticle(it))}</span><span class="q">${esc(qteArticle(it))}</span></div>`).join('');
+    h += `<div class="notes"><h2>Notes</h2>${'<div></div>'.repeat(5)}</div>`;
+    $('#impression').innerHTML = h;
+    try { window.print(); } catch (e) { toast('Impression impossible ici.'); }
+  },
+  // Stock
+  ajoutStock: () => { UI.stockEdit = { id: null, ing: null, nom: '', q: '', lieu: 'frigo', dlc: '', lieuChoisi: false }; ouvrir(modaleStock); },
+  editStock: el => {
+    const s = S.stock.find(x => x.id === el.dataset.id), i = ING[s.ing];
+    const q = i ? (i.u === 'pc' ? Math.round(s.g / i.pc * 10) / 10 : Math.round(s.g)) : (parseFloat(s.txt) || '');
+    UI.stockEdit = { id: s.id, ing: s.ing, nom: s.nom || '', q, lieu: s.lieu, dlc: s.dlc || '', lieuChoisi: true }; ouvrir(modaleStock);
+  },
+  stockPlus: el => {
+    const s = S.stock.find(x => x.id === el.dataset.id); const i = ING[s.ing]; if (!i) return;
+    s.g = Math.max(0, s.g + (+el.dataset.v) * i.pc);
+    if (s.g <= 0.5) S.stock = S.stock.filter(x => x.id !== s.id);
+    sauver(); rendre();
+  },
+  supprStock: () => { S.stock = S.stock.filter(x => x.id !== UI.stockEdit.id); sauver(); fermer(); },
+  validerStock: () => {
+    const e = UI.stockEdit, i = ING[e.ing];
+    if (!e.ing && !e.nom) return toast('Choisissez un aliment.');
+    if (e.ing && !(e.q > 0)) return toast('Indiquez la quantité.');
+    const g = i ? (i.u === 'pc' ? e.q * i.pc : e.q) : 0;
+    const obj = { id: e.id || uid(), ing: e.ing || null, g, lieu: e.lieu, dlc: e.dlc || null };
+    if (!e.ing) { obj.nom = e.nom; obj.txt = e.q ? nb(e.q, 1) : ''; }
+    const k = S.stock.findIndex(x => x.id === obj.id);
+    if (k >= 0) S.stock[k] = obj; else S.stock.push(obj);
+    sauver(); fermer(); toast('Stock mis à jour.');
+  },
+  // Points
+  ppers: el => { UI.ppers = el.dataset.p; rendre(); },
+  pjour: el => { UI.pdate = addDays(UI.pdate, +el.dataset.v); rendre(); },
+  pAuj: () => { UI.pdate = auj(); rendre(); },
+  ajoutExtra: () => { UI.extra = { mode: 'aliment', nom: '', g: 0, rec: '', coef: 1, label: '', pts: '' }; ouvrir(modaleExtra); },
+  exMode: el => { UI.extra.mode = el.dataset.m; rafraichirModale(); },
+  exCoef: el => { UI.extra.coef = +el.dataset.v; rafraichirModale(); },
+  validerExtra: () => {
+    const e = calculExtra(); if (!e) return;
+    ajouterExtra(e); fermer(); toast('Ajouté : ' + e.pts + ' points.');
+  },
+  extraRapide: el => { const e = S.recents[+el.dataset.k]; if (e) { ajouterExtra(e); rendre(); toast('Ajouté : ' + e.pts + ' points.'); } },
+  retirerExtra: el => { const l = (S.extras[UI.pdate] || {})[UI.ppers] || []; S.extras[UI.pdate][UI.ppers] = l.filter(x => x.id !== el.dataset.id); sauver(); rendre(); },
+  // Foyer
+  ajoutPersonne: () => { S.personnes.push({ id: 'x' + uid(), nom: 'Nouvelle personne', coef: 1, presentDefaut: false, suivi: false, budget: 23, agsMax: 15 }); sauver(); rendre(); },
+  supprPersonne: el => { const p = personne(el.dataset.p); confirmer('Retirer ' + esc(p.nom) + ' du foyer ?', 'Retirer', () => { S.personnes = S.personnes.filter(x => x.id !== p.id); S.sejours = S.sejours.filter(s => s.pid !== p.id); sauver(); }, true); },
+  sejQui: el => { memoSejour(); const id = el.dataset.p; UI.sejQui = UI.sejQui || []; UI.sejQui = UI.sejQui.includes(id) ? UI.sejQui.filter(x => x !== id) : [...UI.sejQui, id]; rendre(); },
+  ajoutSejour: () => {
+    memoSejour();
+    const du = UI.sejDu, au = UI.sejAu;
+    if (!(UI.sejQui || []).length) return toast('Touchez le prénom de qui vient.');
+    if (!du || !au || au < du) return toast('Vérifiez les dates.');
+    for (const pid of UI.sejQui) S.sejours.push({ id: uid(), pid, du, au });
+    UI.sejQui = []; sauver(); rendre(); toast('Séjour ajouté : les portions et la liste de courses en tiennent compte.');
+  },
+  supprSejour: el => { S.sejours = S.sejours.filter(s => s.id !== el.dataset.id); sauver(); rendre(); },
+  exporter: async () => {
+    if (APERCU) return toast(MSG_APERCU);
+    const nom = 'popote-' + auj() + '.json';
+    const blob = new Blob([JSON.stringify(S)], { type: 'application/json' });
+    S.derniereSauvegarde = Date.now(); sauver();
+    try {
+      const f = new File([blob], nom, { type: 'application/json' });
+      if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title: 'Données Popote' }); rendre(); return; }
+    } catch (e) { if (e && e.name === 'AbortError') return; }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nom; document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); rendre();
+  },
+  importer: () => $('#fichier-import').click(),
+  importRemplacer: () => {
+    const o = UI.importData;
+    try { localStorage.setItem(LS_SECOURS, JSON.stringify(S)); } catch (e) { }
+    S = completer(o); reindexer(); majDatalists(); sauver(); fermerTout(); toast('Données reçues. Vos anciennes données sont gardées en secours.');
+  },
+  importRecettes: () => {
+    const o = UI.importData; let n = 0;
+    for (const a of o.ingrPerso || []) if (!S.ingrPerso.some(x => x.id === a.id)) { S.ingrPerso.push(a); n++; }
+    for (const r of o.recettesPerso || []) { const k = S.recettesPerso.findIndex(x => x.id === r.id); if (k >= 0) S.recettesPerso[k] = r; else S.recettesPerso.push(r); n++; }
+    for (const k in o.codes || {}) if (!S.codes[k]) S.codes[k] = o.codes[k];
+    reindexer(); majDatalists(); sauver(); fermerTout(); toast(n + ' recette(s) et aliment(s) reçus.');
+  },
+  annulerImport: () => {
+    let b = null; try { b = localStorage.getItem(LS_SECOURS); } catch (e) { }
+    if (!b) return toast('Aucune donnée de secours.');
+    confirmer('Revenir aux données d’avant le dernier import ?', 'Revenir', () => { S = completer(JSON.parse(b)); reindexer(); majDatalists(); sauver(); toast('Données précédentes rétablies.'); return 'tout'; });
+  }
+};
+function memoSejour() { const du = $('#sej-du'), au = $('#sej-au'); if (du) UI.sejDu = du.value; if (au) UI.sejAu = au.value; }
+function ajouterExtra(e) {
+  const d = UI.pdate, p = UI.ppers;
+  S.extras[d] = S.extras[d] || {}; S.extras[d][p] = S.extras[d][p] || [];
+  S.extras[d][p].push({ id: uid(), label: e.label, pts: e.pts, ags: e.ags || 0, chol: e.chol || 0, kcal: e.kcal || 0 });
+  S.recents = [{ label: e.label, pts: e.pts, ags: e.ags || 0, chol: e.chol || 0, kcal: e.kcal || 0 }, ...S.recents.filter(x => x.label !== e.label)].slice(0, 12);
+  sauver();
+}
+
+/* ---------- Saisies (change / input) ---------- */
+const C = {
+  dehors: el => { const { d, s } = UI.slot, m = repas(d, s, true); m.dehors = el.checked; if (m.dehors && m.cuisine) { restaurerStock(d, s); m.cuisine = false; } sauver(); rafraichirModale(); },
+  cuisine: el => {
+    const { d, s } = UI.slot, m = repas(d, s, true);
+    if (el.checked) { m.cuisine = true; deduireStock(d, s); toast(m.deduit.length ? 'Ingrédients retirés du stock.' : 'Marqué comme cuisiné (rien à retirer du stock).'); }
+    else { restaurerStock(d, s); m.cuisine = false; toast('Ingrédients remis dans le stock.'); }
+    sauver(); rafraichirModale();
+  },
+  'ed-nom': el => { UI.edit.nom = el.value; },
+  'ed-cat': el => { UI.edit.cat = el.value; },
+  'ed-temps': el => { UI.edit.temps = Math.max(0, parseInt(el.value) || 0); },
+  'ed-ing': el => {
+    const k = +el.dataset.k, a = alimentParNom(el.value); UI.edit.i[k][0] = a ? a.id : el.value.trim();
+    if (a) el.value = a.nom;
+    $('#ed-w-' + k).innerHTML = avertIng(UI.edit.i[k][0]); $('#ed-nutri').innerHTML = badgesEditeur();
+  },
+  'ed-etapes': el => { UI.edit.e = el.value.split('\n').map(x => x.trim()).filter(Boolean); },
+  'al-nom': el => { UI.aliment.nom = el.value; },
+  'al-r': el => { UI.aliment.r = el.value; },
+  'al-u': el => { UI.aliment.u = el.value; rafraichirModale(); },
+  'al-pc': el => { UI.aliment.pc = +el.value; },
+  'al-n': el => { UI.aliment.n[+el.dataset.k] = parseFloat(String(el.value).replace(',', '.')) || 0; },
+  'al-z': el => { UI.aliment.z = el.checked; },
+  'pe-nom': el => { personne(el.dataset.p).nom = el.value.trim() || 'Sans nom'; sauver(); },
+  'pe-coef': el => { personne(el.dataset.p).coef = parseFloat(el.value); sauver(); },
+  'pe-defaut': el => { personne(el.dataset.p).presentDefaut = el.checked; sauver(); rendre(); },
+  'pe-suivi': el => { personne(el.dataset.p).suivi = el.checked; sauver(); rendre(); },
+  'pe-budget': el => { personne(el.dataset.p).budget = Math.max(0, parseInt(el.value) || 0); sauver(); },
+  'pe-ags': el => { personne(el.dataset.p).agsMax = Math.max(0, parseInt(el.value) || 0); sauver(); },
+  'opt-zero': el => { S.options.zeroFL = el.checked; sauver(); }
+};
+const nombre = v => parseFloat(String(v).replace(',', '.')) || 0;
+const I = { // frappe en direct (sans tout redessiner, pour garder le clavier ouvert)
+  rq: el => { if (UI.rq === el.value) return; UI.rq = el.value; $('#rec-liste').innerHTML = listeRecettes(); },
+  choixQ: el => { if (UI.choixQ === el.value) return; UI.choixQ = el.value; $('#choix-liste').innerHTML = listeChoix(); },
+  'ed-g': el => { UI.edit.i[+el.dataset.k][1] = nombre(el.value); $('#ed-nutri').innerHTML = badgesEditeur(); },
+  'st-nom': el => {
+    const e = UI.stockEdit, a = alimentParNom(el.value);
+    if (a) { e.ing = a.id; e.nom = ''; if (!e.lieuChoisi) { e.lieu = lieuParDefaut(a.id); $('#st-lieu').value = e.lieu; } }
+    else { e.ing = null; e.nom = el.value.trim(); }
+    $('#st-unite').textContent = e.ing ? '(' + uniteSaisie(e.ing) + ')' : ''; $('#st-note').textContent = noteStock(e);
+  },
+  'st-q': el => { UI.stockEdit.q = nombre(el.value); },
+  'st-lieu': el => { UI.stockEdit.lieu = el.value; UI.stockEdit.lieuChoisi = true; },
+  'st-dlc': el => { UI.stockEdit.dlc = el.value; },
+  'ex-nom': el => { UI.extra.nom = el.value; majApercuExtra(); },
+  'ex-g': el => { UI.extra.g = nombre(el.value); majApercuExtra(); },
+  'ex-rec': el => { UI.extra.rec = el.value; majApercuExtra(); },
+  'ex-label': el => { UI.extra.label = el.value.trim(); majApercuExtra(); },
+  'ex-pts': el => { UI.extra.pts = el.value === '' ? '' : nombre(el.value); majApercuExtra(); }
+};
+/* ---------- Scanner de codes-barres : retour des courses ---------- */
+const SC = { flux: null, actif: false, timer: null, vus: {}, cand: {}, audio: null, tour: 0, cv: null, cx: null, file: Promise.resolve(), enCours: new Set() };
+const OFF_CHAMPS = 'product_name_fr,product_name,generic_name_fr,brands,quantity,product_quantity,product_quantity_unit,categories_tags,nutriments';
+const estMagasin = c => c.length === 13 && c[0] === '2';                 // étiquette de balance du magasin (poids ou prix variable)
+const cleCode = c => estMagasin(c) ? c.slice(0, 7) + '*' : c;            // pour ces étiquettes, seul le début identifie le produit
+function normaliserCode(s) {
+  let c = String(s || '').replace(/\D/g, '');
+  if (c.length === 12) c = '0' + c;                                        // UPC-A américain
+  return (c.length === 8 || c.length === 13) && LECTEUR.cleOK(c) ? c : null;
+}
+
+/* Recherche dans Open Food Facts (base libre et collaborative). null = pas de réseau. */
+async function chercherProduit(code) {
+  if (navigator.onLine === false) return null;
+  try {
+    const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 10000);
+    const r = await fetch(`https://world.openfoodfacts.org/api/v2/product/${code}.json?fields=${OFF_CHAMPS}&lc=fr`, { signal: ctrl.signal });
+    clearTimeout(t);
+    let j = null; try { j = await r.json(); } catch (e) { }
+    if (!j) return r.status === 404 ? { trouve: false } : null;
+    if (j.status !== 1 || !j.product) return { trouve: false };
+    return { trouve: true, p: j.product };
+  } catch (e) { return null; }
+}
+function contenuPaquet(p) { // contenu total d'un paquet, en g ou ml
+  const s = norm(p.quantity || '').replace(/,/g, '.');
+  const F = { kg: 1000, gr: 1, g: 1, mg: 0.001, l: 1000, cl: 10, dl: 100, ml: 1 };
+  const u = x => /l$/.test(x) ? 'ml' : 'g';
+  let m = s.match(/(\d+)\s*[x×*]\s*(\d+(?:\.\d+)?)\s*(kg|gr|g|mg|cl|dl|ml|l)\b/);
+  if (m) return { g: +m[1] * +m[2] * F[m[3]], u: u(m[3]) };
+  m = s.match(/(\d+(?:\.\d+)?)\s*(kg|gr|g|mg|cl|dl|ml|l)\s*[x×*]\s*(\d+)\b/);
+  if (m) return { g: +m[1] * +m[3] * F[m[2]], u: u(m[2]) };
+  const pq = parseFloat(p.product_quantity);
+  if (pq > 0) return { g: pq, u: p.product_quantity_unit === 'ml' ? 'ml' : 'g' };
+  m = s.match(/(\d+(?:\.\d+)?)\s*(kg|gr|g|mg|cl|dl|ml|l)\b/);
+  if (m) return { g: +m[1] * F[m[2]], u: u(m[2]) };
+  return { g: 0, u: 'g' };
+}
+function nbPieces(qte, g) { // nombre d'œufs d'une boîte
+  const s = norm(qte);
+  let m = s.match(/(\d+)\s*(oeufs?|pieces?|unites?|gros|moyens)\b/) || s.match(/^x?\s*(\d+)\s*$/) || s.match(/^(\d+)\s*x\b/);
+  if (m && +m[1] > 0 && +m[1] <= 60) return +m[1];
+  return g > 0 ? Math.max(1, Math.round(g / 58)) : 6;
+}
+
+/* Rapprochement automatique produit → aliment des recettes (toujours proposé, jamais imposé) */
+const R_FORTES = [
+  [/sauce soja|tamari|shoyu/, 'soja'], [/concentre de tomate|double concentre/, 'concentre'],
+  [/tomates? pelees|tomates? concassees|pulpe de tomate|coulis de tomate|puree de tomate|passata|tomates? en des|tomates? entieres/, 'tompelees'],
+  [/huile d olive/, 'holive'], [/huile de colza/, 'hcolza'], [/vinaigre/, 'vinaigre'], [/moutarde/, 'moutarde'], [/\bmiel\b/, 'miel'],
+  [/chocolat noir|chocolat (patissier|dessert|a cuire)/, 'chocolat'], [/cacao (en poudre|non sucre|pur|amer)|poudre de cacao/, 'cacao'],
+  [/(fromage blanc|faisselle)(?!.*\b(aux|a la|vanille|saveur)\b)/, 'fblanc0'], [/\bskyr\b(?!.*\b(aux|a la|vanille|saveur)\b)/, 'skyr'], [/(yaourts?|yoghourts?|yogourts?) (nature|brasses? nature)|nature 0 ?%/, 'yaourt0'],
+  [/creme (fraiche|liquide|epaisse|legere|semi epaisse|entiere)/, 'creme15']
+];
+const R_EXCLUS = /\b(yaourts?|yoghourts?|yogourts?|skyr|fromage blanc|sauce|sauces|plats?|cuisine|cuisines|pizzas?|quiches?|biscuits?|gateaux?|chips|soupes?|veloutes?|jus|boissons?|nectars?|compotes?|bonbons?|cereales|barres?|aperitif|tartiner|brioches?|glaces?|sorbets?|dessert|desserts|aromatises?|nuggets|panes?|cordons?|raviolis?|taboule|puree|purees|crackers|biscottes|galettes|crepes|gaufres|confitures?|sandwichs?|wraps?|salade composee|salades composees|tartes?|feuilletes?|surimi|cookies|madeleines)\b/;
+const R_EXCLUS_CAT = /en:(meals|prepared-meals|pizzas|sandwiches|biscuits-and-cakes|biscuits|cakes|salty-snacks|appetizers|breakfast-cereals|confectioneries|candies|ice-creams|soups|sodas|fruit-juices|cookies|crisps|pies)\b/;
+const R_ALIM = [
+  [/(pates|spaghettis?|penne|fusilli|tagliatelles?|coquillettes|macaronis?|farfalle|linguine|rigatoni|torsades|coquilles|lasagnes?).*complete?s?\b|\bcompletes?\b.*(pates|spaghettis?|penne|fusilli)/, 'patescompl'],
+  [/\b(pates|spaghettis?|penne|fusilli|tagliatelles?|coquillettes|macaronis?|farfalle|linguine|rigatoni|torsades|coquilles|lasagnes?|vermicelles?|capellini|orecchiette|conchiglie|tortiglioni|papardelle|pappardelle)\b/, 'pates'],
+  [/riz.*(complet|brun|integral)/, 'rizcomplet'], [/\briz\b|basmati/, 'rizbasmati'],
+  [/semoule|couscous/, 'semoule'], [/quinoa/, 'quinoa'], [/boulgour|bulgur/, 'boulgour'], [/avoine/, 'avoine'],
+  [/farine.*(complete|integrale|t110|t150)/, 'farinecompl'], [/\bfarine\b/, 'farine'], [/maizena|fecule/, 'maizena'], [/levure chimique|poudre a lever/, 'levure'],
+  [/lentilles? corail/, 'lentcorail'], [/lentilles?/, 'lentilles'], [/pois chiches?/, 'poischiche'], [/haricots? rouges?/, 'harrouge'],
+  [/haricots? (blancs?|lingots?|cocos?|tarbais)|flageolets?|mogettes?/, 'harblanc'], [/haricots? verts?/, 'harvert'], [/petits? pois/, 'ppois'],
+  [/blancs? d oeufs?/, 'blancoeuf'], [/\boeufs?\b/, 'oeuf'],
+  [/\blait (demi|entier|ecreme|frais|uht|bio|de vache|sterilise)|^ lait\b/, 'lait'],
+  [/parmesan|parmigiano|grana padano/, 'parmesan'], [/\bfeta\b/, 'feta'], [/chevre/, 'chevrefrais'], [/\bcomte\b/, 'comte'], [/mozzarella/, 'mozza'],
+  [/\bbeurre\b(?! de cacahuete)/, 'beurre'],
+  [/pain.*complet/, 'paincomplet'], [/pain de campagne|levain/, 'painlevain'],
+  [/(blancs?|filets?|aiguillettes?|escalopes?) de poulet/, 'pouletfilet'], [/(cuisses?|pilons?|hauts? de cuisses?) de poulet/, 'pouletcuisse'],
+  [/dinde/, 'dinde'], [/escalopes? de veau/, 'veau'], [/filet mignon/, 'porcfilet'],
+  [/steaks? haches?|(boeuf|viande) hachee?s?|hache (pur )?boeuf/, 'boeufhache'], [/boeuf.*(bourguignon|braiser|mijoter|pot au feu)|paleron|macreuse|\bgite\b/, 'boeufmijoter'],
+  [/saumon/, 'saumon'], [/cabillaud|colin|merlu|\blieu\b|merlan|poisson blanc/, 'poissonblanc'], [/truite/, 'truite'],
+  [/maquereaux?/, 'maquereau'], [/sardines?/, 'sardine'], [/crevettes?/, 'crevette'], [/\bmoules?\b/, 'moules'],
+  [/amandes?/, 'amande'], [/cerneaux de noix|\bnoix\b(?! de (coco|cajou|muscade|pecan|macadamia))/, 'noix'],
+  [/\bsucre\b/, 'sucre'],
+  [/pommes? de terre/, 'pdt'], [/patates? douces?/, 'patatedouce'], [/\boignons?\b/, 'oignon'], [/echalotes?/, 'echalote'], [/\bail\b/, 'ail'],
+  [/carottes?/, 'carotte'], [/poireaux?/, 'poireau'], [/courgettes?/, 'courgette'], [/aubergines?/, 'aubergine'], [/poivrons?/, 'poivron'],
+  [/tomates? cerises?/, 'tomcerise'], [/\btomates?\b/, 'tomate'], [/salade|laitue|mache|roquette|mesclun|batavia|scarole/, 'salade'],
+  [/concombres?/, 'concombre'], [/fenouil/, 'fenouil'], [/celeri rave/, 'celerirave'], [/celeri/, 'celeri'], [/butternut|potiron|potimarron|courge/, 'butternut'],
+  [/navets?/, 'navet'], [/betteraves?/, 'betterave'], [/radis/, 'radis'], [/asperges?/, 'asperge'], [/gingembre/, 'gingembre'],
+  [/champignons?/, 'champi'], [/epinards?/, 'epinard'], [/brocolis?/, 'brocoli'], [/chou fleur/, 'choufleur'], [/\bchoux?\b/, 'chouvert'], [/avocats?/, 'avocat'],
+  [/\bpommes?\b/, 'pomme'], [/\bpoires?\b/, 'poire'], [/bananes?/, 'banane'], [/\boranges?\b/, 'orange'], [/clementines?|mandarines?/, 'clementine'],
+  [/citrons?/, 'citron'], [/kiwis?/, 'kiwi'], [/fraises?/, 'fraise'], [/fruits rouges|framboises?|myrtilles?|\bmures?\b|cassis|groseilles?/, 'fruitsrouges'],
+  [/abricots?/, 'abricot'], [/peches?|nectarines?|brugnons?/, 'peche'],
+  [/herbes de provence/, 'hprovence'], [/\bthym\b/, 'thym'], [/laurier/, 'laurier'], [/cumin/, 'cumin'], [/\bcurry\b/, 'curry'], [/curcuma/, 'curcuma'],
+  [/paprika|espelette/, 'paprika'], [/cannelle/, 'cannelle'], [/muscade/, 'muscade'], [/\bpoivre\b/, 'poivre'], [/\bsel\b/, 'sel'],
+  [/persil/, 'persil'], [/coriandre/, 'coriandre'], [/basilic/, 'basilic'], [/ciboulette/, 'ciboulette'], [/menthe/, 'menthe'], [/aneth/, 'aneth']
+];
+function devinerAliment(texte, cats) {
+  let t = ' ' + norm(texte).replace(/[’'`]/g, ' ').replace(/[^a-z0-9% ]/g, ' ').replace(/\s+/g, ' ') + ' ';
+  t = t.replace(/sans sucres? ajoutes?|sans sucre/g, ' ');
+  if (/wines|:vins/.test(cats) || /\bvin\b/.test(t)) {
+    if (/white-wines|\bblanc\b/.test(cats + t)) return 'vinblanc';
+    if (/red-wines|\brouge\b/.test(cats + t)) return 'vinrouge';
+    return null;
+  }
+  for (const [re, id] of R_FORTES) if (re.test(t)) return id;
+  if (R_EXCLUS.test(t) || R_EXCLUS_CAT.test(cats)) return null;
+  for (const [re, id] of R_ALIM) if (re.test(t)) return id;
+  return null;
+}
+// Légumineuses déjà cuites (boîte, bocal, sachet) : comptées en équivalent sec ; légumes en conserve : poids égoutté
+const LEG_SECS = ['lentilles', 'lentcorail', 'poischiche', 'harrouge', 'harblanc'];
+const LEG_CONSERVE = ['ppois', 'harvert', 'champi', 'epinard', 'tompelees'];
+function facteurScan(it) {
+  if (it.cuit && LEG_SECS.includes(it.ing)) return 0.26;
+  if (it.conserve && LEG_CONSERVE.includes(it.ing) && it.ing !== 'tompelees') return 0.6;
+  return 1;
+}
+function remplirDepuisOFF(x, p) {
+  x.nom = (p.product_name_fr || p.product_name || p.generic_name_fr || '').trim() || 'Produit sans nom';
+  x.marque = String(p.brands || '').split(',')[0].trim();
+  x.qte = String(p.quantity || '').trim();
+  const q = contenuPaquet(p); x.g = Math.round(q.g); x.u = q.u;
+  const cats = (p.categories_tags || []).join(' ');
+  const t = norm(x.nom + ' ' + (p.generic_name_fr || ''));
+  const n = p.nutriments || {};
+  const val = k => { const v = parseFloat(n[k]); return isFinite(v) ? v : null; };
+  let kcal = val('energy-kcal_100g'); if (kcal === null && val('energy_100g') !== null) kcal = val('energy_100g') / 4.184;
+  x.nutr = kcal === null ? null : [Math.round(kcal), val('proteins_100g') || 0, val('saturated-fat_100g') || 0, val('sugars_100g') || 0, val('fiber_100g') || 0, Math.round((val('cholesterol_100g') || 0) * 1000)];
+  x.conserve = /canned|en:conserves/.test(cats) || /conserve|en boite|bocal|appertise/.test(t);
+  x.cuit = x.conserve || /\bcuit|cuites?\b|cuisinee?s?|vapeur|prets? a l emploi|prets? a consommer|au naturel/.test(t);
+  x.ing = devinerAliment(x.nom + ' ' + (p.generic_name_fr || ''), cats);
+  if (x.ing && !ING[x.ing]) x.ing = null;
+  x.choix = x.ing ? 'aliment' : 'memo';
+  const congele = /frozen|surgel/.test(cats) || /surgel/.test(t);
+  if (congele) x.lieu = 'congel';
+  else if (/uht|sterilise/.test(cats + t)) x.lieu = 'placard';
+  else if (x.ing) x.lieu = lieuParDefaut(x.ing);
+  else x.lieu = /dairies|cheeses|yogurts|meats|fishes|seafood|fresh|refrigerated|charcuteries|hams|sausages/.test(cats) ? 'frigo' : 'placard';
+  if (x.ing === 'oeuf') x.g = nbPieces(x.qte, x.g) * ING.oeuf.pc;
+  x.etat = 'ok'; x.devine = true;
+}
+function nouvelArticleScan(code) {
+  const it = { id: uid(), code, n: 1, etat: 'attente', nom: '', marque: '', qte: '', g: 0, u: 'g', ing: null, choix: 'aliment', lieu: 'placard', dlc: '', nutr: null, cuit: false, conserve: false, devine: true };
+  const m = S.codes[cleCode(code)];
+  if (m) { // produit déjà rencontré : on reprend ce qui avait été choisi, sans connexion
+    Object.assign(it, { nom: m.nom || '', marque: m.marque || '', qte: m.qte || '', g: m.g || 0, u: m.u || 'g', ing: m.ing && ING[m.ing] ? m.ing : null,
+      choix: m.choix || 'aliment', lieu: m.lieu || 'placard', cuit: !!m.cuit, conserve: !!m.conserve, etat: 'ok', devine: false });
+    if (estMagasin(code)) { it.g = 0; it.etat = 'magasin'; }
+  } else if (estMagasin(code)) {
+    Object.assign(it, { nom: 'Produit pesé en magasin', etat: 'magasin' });
+  }
+  return it;
+}
+function rechercher(it) {
+  if (SC.enCours.has(it.id)) return;
+  SC.enCours.add(it.id); it.etat = 'attente';
+  SC.file = SC.file.then(async () => {
+    const r = it.code in DEMO ? (DEMO[it.code] ? { trouve: true, p: DEMO[it.code] } : { trouve: false }) : await chercherProduit(it.code);
+    if (it.code in DEMO) await new Promise(ok => setTimeout(ok, 400));
+    SC.enCours.delete(it.id);
+    const x = S.scan.find(y => y.id === it.id); if (!x) return;
+    if (r === null) x.etat = 'horsligne';
+    else if (!r.trouve) { x.etat = 'inconnu'; x.nom = x.nom || 'Produit inconnu'; }
+    else remplirDepuisOFF(x, r.p);
+    sauver(); majVuesScan();
+  });
+}
+/* Aperçu claude.ai : caméra et Internet bloqués → produits d'exemple pour essayer le scanner */
+const DEMO = APERCU ? {
+  '3760012345014': { product_name_fr: 'Spaghetti (exemple)', quantity: '500 g', categories_tags: ['en:pastas'], nutriments: { 'energy-kcal_100g': 359, proteins_100g: 12.5, 'saturated-fat_100g': 0.3, sugars_100g: 3.5, fiber_100g: 3 } },
+  '3760012345021': { product_name_fr: 'Pulpe de tomates (exemple)', quantity: '2 x 400 g', categories_tags: ['en:canned-foods'], nutriments: { 'energy-kcal_100g': 24, proteins_100g: 1.2, 'saturated-fat_100g': 0, sugars_100g: 3.5, fiber_100g: 1.2 } },
+  '3760012345038': { product_name_fr: 'Yaourt nature (exemple)', quantity: '4 x 125 g', categories_tags: ['en:dairies', 'en:yogurts'], nutriments: { 'energy-kcal_100g': 46, proteins_100g: 4.5, 'saturated-fat_100g': 0.1, sugars_100g: 5.5, fiber_100g: 0 } },
+  '4000999888777': null // produit absent de la base
+} : {};
+function relancerRecherches() { for (const it of S.scan) if (it.etat === 'attente' || it.etat === 'horsligne') rechercher(it); }
+function memoriserCode(it) {
+  S.codes[cleCode(it.code)] = { nom: it.nom, marque: it.marque, qte: it.qte, g: estMagasin(it.code) ? 0 : it.g, u: it.u, ing: it.ing, choix: it.choix, lieu: it.lieu, cuit: it.cuit, conserve: it.conserve, t: Date.now() };
+}
+
+/* Textes affichés */
+const titreScan = it => it.nom || (it.etat === 'attente' ? 'Recherche du produit…' : 'Code ' + it.code);
+function etatScan(it) {
+  if (it.etat === 'attente') return 'recherche dans Open Food Facts…';
+  if (it.etat === 'horsligne' && !it.ing) return APERCU ? 'recherche impossible dans l’aperçu claude.ai' : 'pas de connexion : à compléter';
+  if (it.etat === 'inconnu' && !it.ing && it.choix === 'aliment') return 'produit introuvable : à compléter';
+  if (it.etat === 'magasin' && !(it.ing && it.g > 0)) return 'étiquette du magasin : à compléter';
+  if (it.choix === 'memo') return 'pour mémoire (sans calcul)';
+  if (it.choix === 'ignorer') return 'ne sera pas rangé';
+  return it.ing && ING[it.ing] ? '→ ' + ING[it.ing].nom : 'aliment à choisir';
+}
+const pret = it => it.etat !== 'attente' && (it.choix !== 'aliment' || (it.ing && ING[it.ing] && it.g > 0));
+function qteTotaleScan(it) {
+  const i = ING[it.ing]; if (!i || !(it.g > 0)) return '';
+  return qteStock({ ing: it.ing, g: it.g * it.n * facteurScan(it) });
+}
+function resumeScan(it) {
+  if (it.etat === 'attente') return 'Recherche en cours…';
+  if (it.choix === 'ignorer') return 'Ne sera pas rangé';
+  if (it.choix === 'memo') return 'Pour mémoire (sans calcul) · ' + LIEUX[it.lieu];
+  if (!it.ing || !ING[it.ing]) return etatScan(it) === 'aliment à choisir' ? 'Aliment à choisir' : cap(etatScan(it));
+  if (!(it.g > 0)) return '→ ' + ING[it.ing].nom + ' · quantité à indiquer';
+  return '→ ' + ING[it.ing].nom + ' · ' + qteTotaleScan(it) + ' · ' + LIEUX[it.lieu] + (it.devine ? ' (proposé)' : '');
+}
+
+/* Écran du scanner */
+async function ouvrirScanner() {
+  try { // le son doit être préparé pendant le geste (sinon il est bloqué sur iPhone)
+    if (!SC.audio) SC.audio = new (window.AudioContext || window.webkitAudioContext)();
+    if (SC.audio.state === 'suspended') SC.audio.resume();
+  } catch (e) { }
+  const el = $('#scanner');
+  el.innerHTML = `<div class="sc-haut"><span class="sc-titre">📷 Scanner les achats</span><button class="btn ic sc-x" data-a="scanFin" aria-label="Fermer">✕</button></div>
+    <div class="sc-video"><video id="sc-video" playsinline muted autoplay></video>
+      <div class="sc-cadre" id="sc-cadre"><div class="sc-laser"></div></div>
+      <div class="sc-msg" id="sc-msg">Ouverture de la caméra…</div></div>
+    <div class="sc-liste" id="sc-liste"></div>
+    <div class="sc-bas"><button class="btn" data-a="scanTaper">⌨️ Taper le code</button><button class="btn pri" data-a="scanFin" id="sc-fin">Terminer</button></div>`;
+  el.hidden = false; document.body.style.overflow = 'hidden';
+  majListeScanner();
+  relancerRecherches();
+  await demarrerCamera();
+}
+function msgScanner(t) { const m = $('#sc-msg'); if (m) m.innerHTML = t; }
+async function demarrerCamera() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    msgScanner(APERCU ? 'La caméra est bloquée dans l’aperçu claude.ai. Elle fonctionne dans l’application installée depuis GitHub.<br><button class="btn pri" data-a="scanDemo" style="margin-top:10px">▶ Essayer avec des produits d’exemple</button>' : 'La caméra n’est pas disponible. Touchez « Taper le code ».');
+    return;
+  }
+  arreterCamera();
+  try {
+    SC.flux = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } } });
+  } catch (e) {
+    const nom = e && e.name;
+    msgScanner(APERCU ? 'La caméra est bloquée dans l’aperçu claude.ai. Elle fonctionne dans l’application installée depuis GitHub.<br><button class="btn pri" data-a="scanDemo" style="margin-top:10px">▶ Essayer avec des produits d’exemple</button>'
+      : nom === 'NotAllowedError' ? 'L’accès à la caméra a été refusé. Autorisez-le (Réglages › Safari › Caméra › Autoriser), puis rouvrez le scanner.'
+      : 'La caméra n’a pas pu s’ouvrir. Vous pouvez taper le code.');
+    return;
+  }
+  if ($('#scanner').hidden) { arreterCamera(); return; } // fermé entre-temps
+  const v = $('#sc-video'); v.srcObject = SC.flux;
+  try { await v.play(); } catch (e) { }
+  try {
+    const tr = SC.flux.getVideoTracks()[0], cap = tr.getCapabilities ? tr.getCapabilities() : {};
+    if (cap.focusMode && cap.focusMode.includes('continuous')) await tr.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+  } catch (e) { }
+  msgScanner('Code-barres dans le cadre, à 10–15 cm');
+  SC.actif = true; boucleScan();
+}
+function arreterCamera() {
+  SC.actif = false; clearTimeout(SC.timer);
+  if (SC.flux) { SC.flux.getTracks().forEach(t => t.stop()); SC.flux = null; }
+  const v = $('#sc-video'); if (v) v.srcObject = null;
+}
+function fermerScanner() {
+  arreterCamera();
+  const el = $('#scanner'); el.hidden = true; el.innerHTML = '';
+  if (!UI.pile.length) document.body.style.overflow = '';
+}
+const scannerOuvert = () => !$('#scanner').hidden;
+function boucleScan() {
+  if (!SC.actif) return;
+  const v = $('#sc-video');
+  let delai = 150;
+  if (v && v.readyState >= 2 && v.videoWidth && !document.hidden) {
+    const t0 = performance.now();
+    try { analyserImage(v); } catch (e) { console.warn(e); }
+    delai = Math.max(40, 150 - (performance.now() - t0));
+  }
+  SC.timer = setTimeout(boucleScan, delai);
+}
+function analyserImage(v) {
+  const W = v.videoWidth, H = v.videoHeight;
+  if (!SC.cv) { SC.cv = document.createElement('canvas'); SC.cx = SC.cv.getContext('2d', { willReadFrequently: true }); }
+  const cv = SC.cv, cx = SC.cx; let votes;
+  SC.tour++;
+  if (SC.tour % 3) { // bande horizontale au centre de l'image (code tenu à plat)
+    const h = Math.round(H * 0.5), y = Math.round(H * 0.25);
+    if (cv.width !== W || cv.height !== h) { cv.width = W; cv.height = h; }
+    cx.drawImage(v, 0, y, W, h, 0, 0, W, h);
+    votes = LECTEUR.analyser(cx.getImageData(0, 0, W, h).data, W, h, true, { lignes: 28, colonnes: 0, y0: 0.03, y1: 0.97 });
+  } else { // bande verticale (code tenu debout)
+    const w = Math.round(W * 0.6), x = Math.round(W * 0.2);
+    if (cv.width !== w || cv.height !== H) { cv.width = w; cv.height = H; }
+    cx.drawImage(v, x, 0, w, H, 0, 0, w, H);
+    votes = LECTEUR.analyser(cx.getImageData(0, 0, w, H).data, w, H, true, { lignes: 0, colonnes: 16, x0: 0.03, x1: 0.97 });
+  }
+  const t = Date.now();
+  for (const code in votes) { // accepté s'il est lu sur 2 lignes, ou sur 2 images de suite
+    if (votes[code] >= 2 || (SC.cand[code] && t - SC.cand[code] < 900)) codeLu(code);
+    else SC.cand[code] = t;
+  }
+}
+function codeLu(code) {
+  const t = Date.now(), vu = SC.vus[code]; SC.vus[code] = t;
+  if (vu && t - vu < 2000) return; // toujours devant la caméra : c'est le même paquet
+  ajouterScan(code); bip(); flashCadre();
+}
+function ajouterScan(code) {
+  let it = S.scan.find(x => x.code === code);
+  if (it) { it.n++; S.scan = [it, ...S.scan.filter(x => x !== it)]; }
+  else { it = nouvelArticleScan(code); S.scan.unshift(it); }
+  sauver(); majListeScanner(it.id);
+  if (it.etat === 'attente') rechercher(it);
+}
+function bip() {
+  try {
+    const ac = SC.audio; if (!ac) return;
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.frequency.value = 1500; g.gain.value = 0.12; o.connect(g); g.connect(ac.destination);
+    o.start(); o.stop(ac.currentTime + 0.09);
+  } catch (e) { }
+}
+function flashCadre() { const c = $('#sc-cadre'); if (!c) return; c.classList.add('ok'); clearTimeout(flashCadre._t); flashCadre._t = setTimeout(() => c.classList.remove('ok'), 450); }
+function majListeScanner(surligne) {
+  const l = $('#sc-liste'); if (!l || !scannerOuvert()) return;
+  const n = S.scan.reduce((t, x) => t + x.n, 0);
+  l.innerHTML = S.scan.length ? S.scan.map(it => `<div class="sc-art ${it.id === surligne ? 'neuf' : ''}"><span class="sc-n">${it.n > 1 ? '×' + it.n : ''}</span>
+      <span class="sc-t">${esc(titreScan(it))}<small>${esc(etatScan(it))}</small></span>
+      <button class="btn ic" data-a="scanMoins" data-id="${it.id}" aria-label="En retirer un">−</button></div>`).join('')
+    : '<p class="sc-vide">Les produits scannés s’afficheront ici. Un bip et un cadre vert confirment chaque lecture.</p>';
+  const b = $('#sc-fin'); if (b) b.textContent = n ? `Terminer (${n})` : 'Terminer';
+  if (surligne) l.scrollTop = 0;
+}
+function majVuesScan() {
+  majListeScanner();
+  if (UI.pile.length && UI.pile[UI.pile.length - 1] === modaleRangement) rafraichirModale();
+  if (UI.onglet === 'stock' && !UI.pile.length) rendre();
+}
+
+/* Fenêtre « Ranger les achats » */
+function modaleRangement() {
+  let h = `<h2>🧺 Ranger les achats</h2>`;
+  if (!S.scan.length) return h + `<p>Aucun produit scanné pour l’instant.</p><div class="actions"><button class="btn pri large" data-a="scanReprendre">📷 Scanner les achats</button></div>`;
+  const nb = S.scan.reduce((t, x) => t + x.n, 0), aFaire = S.scan.filter(x => !pret(x)).length;
+  h += `<p class="petit">${nb} produit${nb > 1 ? 's' : ''} scanné${nb > 1 ? 's' : ''}. Vérifiez l’aliment proposé pour chacun (touchez une ligne pour corriger), puis rangez.</p>`;
+  if (aFaire) h += `<div class="alerte petit">${aFaire} produit${aFaire > 1 ? 's' : ''} à compléter (en orange). Ils resteront dans cette liste si vous rangez le reste.</div>`;
+  const liste = S.scan.slice().sort((a, b) => pret(a) - pret(b));
+  h += liste.map(it => {
+    const ok = pret(it);
+    return `<button class="rec" data-a="scanEdit" data-id="${it.id}"><span class="t">${esc(titreScan(it))}
+      <small>${esc([it.marque, it.qte].filter(Boolean).join(' · '))}</small><small class="${ok ? '' : 'a-faire'}">${esc(resumeScan(it))}</small></span>
+      <span class="badge ${ok ? (it.choix === 'ignorer' ? 'g' : '') : 'o'}">${it.n > 1 ? '×' + it.n : ok ? '✓' : '!'}</span></button>`;
+  }).join('');
+  h += `<div class="actions"><button class="btn pri large" data-a="scanRanger">✓ Ranger dans le stock</button></div>
+    <div class="actions"><button class="btn" data-a="scanReprendre">📷 Continuer à scanner</button>
+    ${S.scan.some(x => x.etat === 'horsligne') ? '<button class="btn" data-a="scanReessayer">↻ Réessayer les recherches</button>' : ''}
+    <button class="btn del" data-a="scanVider">Vider la liste</button></div>
+    <p class="muted petit">Les produits rangés sont retirés de la liste de courses. Chaque produit est retenu : la prochaine fois, il sera reconnu tout de suite, même sans connexion.</p>`;
+  return h;
+}
+function libQteScan(it) {
+  const i = ING[it.ing];
+  if (i && i.u === 'pc') return it.ing === 'oeuf' ? 'Nombre d’œufs dans la boîte' : `Nombre de ${i.ul ? i.ul + 's' : 'pièces'} dans le paquet`;
+  return `Contenu d’un paquet (${i ? i.u : it.u})`;
+}
+function valQteScan(it) {
+  const i = ING[it.ing]; if (!(it.g > 0)) return '';
+  return i && i.u === 'pc' ? Math.round(it.g / i.pc * 10) / 10 : Math.round(it.g);
+}
+function noteIngScan(it) {
+  const l = [];
+  if (!it.ing && it.nutr) l.push(`<button class="lien" data-a="scanCreerAliment">＋ Créer l’aliment « ${esc(it.nom)} » avec les valeurs de l’emballage</button>`);
+  if (!it.ing && !it.nutr) l.push('<span class="muted">Choisissez l’aliment le plus proche dans la liste, ou « Pour mémoire ».</span>');
+  if (it.ing && it.devine) l.push('<span class="muted">Aliment proposé automatiquement : vérifiez-le.</span>');
+  const f = facteurScan(it);
+  if (it.ing && f !== 1) l.push(`<span class="muted">${f < 0.5 ? 'Déjà cuit : compté en équivalent sec' : 'Conserve : compté au poids égoutté'} (× ${nb(f, 2)}).</span>`);
+  return l.join('<br>');
+}
+const totalScan = it => it.ing && it.g > 0 ? 'Ajouté au stock : <b>' + esc(qteTotaleScan(it)) + '</b>' : '';
+function modaleArticleScan() {
+  const it = S.scan.find(x => x.id === UI.scanId); if (!it) return '<p>Ce produit n’est plus dans la liste.</p>';
+  const i = ING[it.ing];
+  let h = `<h2>${esc(titreScan(it))}</h2><p class="muted petit">${esc([it.marque, it.qte, 'code ' + it.code].filter(Boolean).join(' · '))}</p>`;
+  if (it.etat === 'horsligne') h += `<div class="alerte petit">${APERCU ? 'Recherche impossible dans l’aperçu claude.ai.' : 'Pas de connexion : le produit n’a pas pu être identifié.'} <button class="lien" data-a="scanReessayer">Réessayer</button> ou choisissez l’aliment vous-même.</div>`;
+  if (it.etat === 'inconnu') h += `<div class="info petit">Ce code n’est pas dans la base Open Food Facts. Choisissez l’aliment correspondant, ou « Ne pas ranger » s’il ne s’agit pas de nourriture : ce choix sera retenu.</div>`;
+  if (it.etat === 'magasin') h += `<div class="info petit">Étiquette du magasin (produit pesé) : choisissez l’aliment et indiquez le poids. L’aliment sera retenu pour la prochaine fois.</div>`;
+  h += `<div class="chips" style="margin:12px 0">${[['aliment', 'Ranger comme aliment'], ['memo', 'Pour mémoire'], ['ignorer', 'Ne pas ranger']].map(([k, l]) => `<button class="chip ${it.choix === k ? 'on' : ''}" data-a="scanChoix" data-c="${k}">${l}</button>`).join('')}</div>`;
+  if (it.choix === 'aliment') h += `<div class="sec"><label class="champ"><span>Aliment de vos recettes</span><input type="text" list="dl-ingr" data-i="sc-ing" value="${esc(i ? i.nom : '')}" placeholder="Choisir dans la liste"></label>
+      <div id="sc-note" class="petit">${noteIngScan(it)}</div>
+      <label class="champ"><span id="sc-q-lbl">${libQteScan(it)}</span><input type="number" min="0" step="any" inputmode="decimal" id="sc-q" data-i="sc-q" value="${valQteScan(it)}"></label>
+      <p class="petit" id="sc-total">${totalScan(it)}</p></div>`;
+  if (it.choix === 'memo') h += `<p class="muted petit">L’article apparaîtra dans le stock pour mémoire, sans être utilisé dans les calculs des menus.</p>`;
+  h += `<div class="sec"><div class="ligne" style="margin-top:0"><span class="lbl" style="margin:0;flex:1">Nombre de paquets</span><button class="btn ic" data-a="scanNb" data-v="-1">−</button><b style="min-width:30px;text-align:center">${it.n}</b><button class="btn ic" data-a="scanNb" data-v="1">＋</button></div>`;
+  if (it.choix !== 'ignorer') h += `<div class="grille2"><label class="champ"><span>Où ?</span><select data-i="sc-lieu">${Object.entries(LIEUX).map(([k, l]) => `<option value="${k}" ${it.lieu === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+      <label class="champ"><span>À consommer avant (facultatif)</span><input type="date" data-i="sc-dlc" value="${it.dlc || ''}"></label></div>`;
+  h += `</div><div class="actions fin"><button class="btn del" data-a="scanSuppr">Retirer de la liste</button><button class="btn pri" data-a="scanOK">OK</button></div>`;
+  return h;
+}
+function modaleTaper() {
+  return `<h2>⌨️ Taper le code-barres</h2><p class="muted petit">Les 13 chiffres sous les barres (ou 8 pour les petits codes).</p>
+    <input type="text" inputmode="numeric" autocomplete="off" class="recherche" data-i="sc-code" value="${esc(UI.codeTape || '')}" placeholder="Ex. : 3 017620 422003">
+    <div class="actions fin"><button class="btn" data-a="fermer">Annuler</button><button class="btn pri" data-a="scanTaperOK">Ajouter</button></div>`;
+}
+const articleScan = () => S.scan.find(x => x.id === UI.scanId);
+function majEditeurScan(it, aussiValeur) {
+  const n = $('#sc-note'); if (n) n.innerHTML = noteIngScan(it);
+  const l = $('#sc-q-lbl'); if (l) l.textContent = libQteScan(it);
+  const t = $('#sc-total'); if (t) t.innerHTML = totalScan(it);
+  const q = $('#sc-q'); if (q && aussiValeur) q.value = valQteScan(it);
+}
+function rangerAchats() {
+  const prets = S.scan.filter(pret);
+  if (!prets.length) return toast(S.scan.some(x => x.etat === 'attente') ? 'Recherche en cours, patientez quelques secondes.' : 'Complétez d’abord les produits en orange.');
+  let n = 0; const ings = new Set();
+  for (const it of prets) {
+    memoriserCode(it);
+    if (it.choix === 'aliment') { ajouterAuStock(it.ing, it.g * it.n * facteurScan(it), it.lieu, it.dlc || null); ings.add(it.ing); n += it.n; }
+    else if (it.choix === 'memo') { S.stock.push({ id: uid(), ing: null, nom: it.nom + (it.marque ? ' (' + it.marque + ')' : ''), txt: (it.n > 1 ? it.n + ' × ' : '') + (it.qte || ''), g: 0, lieu: it.lieu, dlc: it.dlc || null }); n += it.n; }
+  }
+  const avant = S.courses.items.length;
+  S.courses.items = S.courses.items.filter(x => !(x.ing && ings.has(x.ing)));
+  const retires = avant - S.courses.items.length;
+  S.scan = S.scan.filter(x => !pret(x));
+  sauver();
+  let msg = n + ' produit' + (n > 1 ? 's rangés' : ' rangé') + ' dans le stock';
+  if (retires) msg += ', ' + retires + ' retiré' + (retires > 1 ? 's' : '') + ' de la liste de courses';
+  if (S.scan.length) { msg += '. Reste ' + S.scan.length + ' à compléter.'; rafraichirModale(); rendre(); }
+  else { UI.pile = []; dessinerModale(); UI.onglet = 'stock'; rendre(); window.scrollTo(0, 0); msg += '.'; }
+  toast(msg);
+}
+const A_SCAN = {
+  scanOuvrir: () => ouvrirScanner(),
+  scanDemo: () => {
+    const codes = Object.keys(DEMO);
+    msgScanner('Essai : les produits d’exemple passent devant la caméra…');
+    codes.forEach((c, k) => setTimeout(() => { if (scannerOuvert()) { ajouterScan(c); bip(); flashCadre(); } }, 700 + k * 1300));
+    setTimeout(() => { if (scannerOuvert()) msgScanner('Essai terminé : touchez « Terminer » pour ranger les achats.'); }, 900 + codes.length * 1300);
+  },
+  scanReprendre: () => { UI.pile = []; dessinerModale(); ouvrirScanner(); },
+  scanFin: () => { fermerScanner(); if (S.scan.length) ouvrir(modaleRangement); else rendre(); },
+  scanVoir: () => { relancerRecherches(); ouvrir(modaleRangement); },
+  scanTaper: () => { UI.codeTape = ''; ouvrir(modaleTaper); setTimeout(() => { const i = document.querySelector('[data-i="sc-code"]'); if (i) i.focus(); }, 50); },
+  scanTaperOK: () => {
+    const c = normaliserCode(UI.codeTape);
+    if (!c) return toast('Code incorrect : vérifiez les chiffres.');
+    UI.pile.pop(); dessinerModale(); if (scannerOuvert()) document.body.style.overflow = 'hidden';
+    ajouterScan(c); toast('Produit ajouté.');
+    if (!scannerOuvert()) { if (UI.pile.length) rafraichirModale(); else ouvrir(modaleRangement); }
+  },
+  scanMoins: el => { const it = S.scan.find(x => x.id === el.dataset.id); if (!it) return; it.n--; if (it.n <= 0) S.scan = S.scan.filter(x => x !== it); sauver(); majListeScanner(); },
+  scanEdit: el => { UI.scanId = el.dataset.id; ouvrir(modaleArticleScan); },
+  scanChoix: el => { const it = articleScan(); if (!it) return; it.choix = el.dataset.c; it.devine = false; sauver(); rafraichirModale(); },
+  scanNb: el => { const it = articleScan(); if (!it) return; it.n = Math.max(1, it.n + +el.dataset.v); sauver(); rafraichirModale(); },
+  scanSuppr: () => { S.scan = S.scan.filter(x => x.id !== UI.scanId); sauver(); fermer(); },
+  scanOK: () => { const it = articleScan(); if (it) { it.devine = false; sauver(); } fermer(); },
+  scanRanger: () => rangerAchats(),
+  scanReessayer: () => { relancerRecherches(); toast('Nouvelle recherche lancée.'); rafraichirModale(); },
+  scanVider: () => confirmer('Vider la liste des produits scannés ? (rien ne sera rangé)', 'Vider', () => { S.scan = []; sauver(); }, true),
+  scanCreerAliment: () => {
+    const it = articleScan(); if (!it || !it.nutr) return;
+    let a = alimentParNom(it.nom);
+    if (!a) {
+      a = { id: 'ip_' + uid(), nom: it.nom.trim(), r: it.lieu === 'frigo' ? 'cr' : 'ep', n: it.nutr.slice(), u: it.u === 'ml' ? 'ml' : 'g' };
+      S.ingrPerso.push(a); reindexer(); majDatalists();
+    }
+    it.ing = a.id; it.choix = 'aliment'; it.devine = false; sauver(); rafraichirModale(); toast('Aliment créé : vous pouvez l’utiliser dans vos recettes.');
+  }
+};
+const I_SCAN = {
+  'sc-code': el => { UI.codeTape = el.value; },
+  'sc-ing': el => {
+    const it = articleScan(); if (!it) return;
+    const a = alimentParNom(el.value), avant = it.ing;
+    it.ing = a ? a.id : null; if (a) it.devine = false;
+    if (a && it.ing === 'oeuf' && avant !== 'oeuf') it.g = nbPieces(it.qte, it.g) * ING.oeuf.pc;
+    sauver(); majEditeurScan(it, avant !== it.ing && !!a);
+  },
+  'sc-q': el => { const it = articleScan(); if (!it) return; const i = ING[it.ing], q = nombre(el.value); it.g = i && i.u === 'pc' ? q * i.pc : q; sauver(); majEditeurScan(it, false); },
+  'sc-lieu': el => { const it = articleScan(); if (it) { it.lieu = el.value; sauver(); } },
+  'sc-dlc': el => { const it = articleScan(); if (it) { it.dlc = el.value; sauver(); } }
+};
+
+Object.assign(A, A_SCAN); Object.assign(I, I_SCAN);
+
+function apercuExtra() { const a = calculExtra(); return a ? `<b>${esc(a.label)}</b> : ${a.pts} point${a.pts > 1 ? 's' : ''}` : 'Complétez les champs ci-dessus.'; }
+function majApercuExtra() { $('#ex-apercu').innerHTML = apercuExtra(); $('#ex-ok').disabled = !calculExtra(); }
+
+/* ---------- Démarrage ---------- */
+function demarrer() {
+  charger(); reindexer(); majDatalists();
+  document.addEventListener('click', ev => {
+    const el = ev.target.closest('[data-a]'); if (!el) return;
+    if (ev.target.id === 'voile') return;
+    const f = A[el.dataset.a]; if (f) { ev.preventDefault(); f(el, ev); }
+  });
+  $('#voile').addEventListener('click', ev => { if (ev.target.id === 'voile') fermer(); });
+  document.addEventListener('change', ev => { const el = ev.target; if (!el.dataset) return; if (el.dataset.c && C[el.dataset.c]) C[el.dataset.c](el); else if (el.dataset.i && I[el.dataset.i] && (el.tagName === 'SELECT' || el.type === 'date')) I[el.dataset.i](el); });
+  document.addEventListener('input', ev => { const el = ev.target; if (el.dataset && el.dataset.i && I[el.dataset.i]) I[el.dataset.i](el); });
+  document.addEventListener('change', ev => {
+    if (ev.target.id !== 'fichier-import') return;
+    const f = ev.target.files[0]; ev.target.value = ''; if (!f) return;
+    const lec = new FileReader();
+    lec.onload = () => {
+      let o; try { o = JSON.parse(lec.result); } catch (e) { return toast('Ce fichier n’est pas un fichier Popote.'); }
+      if (!o || !o.personnes || !o.repas) return toast('Ce fichier n’est pas un fichier Popote.');
+      UI.importData = o;
+      const date = o.majLe ? new Date(o.majLe).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' }) : 'inconnue';
+      ouvrir(() => `<h2>📥 Données reçues</h2><p>Fichier mis à jour le <b>${date}</b> : ${Object.keys(o.repas).length} jours de menus, ${(o.recettesPerso || []).length} recette(s) perso, ${(o.stock || []).length} article(s) en stock, ${(o.courses && o.courses.items || []).length} article(s) dans la liste.</p>
+        <div class="sec"><button class="btn pri large" data-a="importRemplacer">Remplacer toutes mes données par celles-ci</button>
+        <p class="muted petit">Menus, liste de courses, stock, séjours, recettes et points deviennent identiques à l’autre appareil. Vos données actuelles sont gardées en secours.</p></div>
+        <div class="sec"><button class="btn large" data-a="importRecettes">Ajouter seulement les recettes, aliments et produits connus</button></div>
+        <div class="actions fin"><button class="btn del" data-a="annulerImport">Revenir aux données d’avant le dernier import</button><button class="btn" data-a="fermer">Annuler</button></div>`);
+    };
+    lec.readAsText(f);
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden || !scannerOuvert()) return;
+    const tr = SC.flux && SC.flux.getVideoTracks()[0];
+    if (!tr || tr.readyState === 'ended') demarrerCamera();
+  });
+  rendre();
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    try { navigator.serviceWorker.register('sw.js').catch(() => { }); } catch (e) { }
+  }
+}
+document.addEventListener('DOMContentLoaded', demarrer);
+
+</script>
+</body>
+</html>
