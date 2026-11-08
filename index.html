@@ -178,6 +178,11 @@ ul.ingr li span:last-child{color:var(--doux);text-align:right}
   padding:12px 20px;border-radius:12px;z-index:80;font-size:17px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90vw;text-align:center}
 #toast.vu{opacity:1}
 
+a.btn{text-decoration:none;color:var(--encre)}
+a.btn.pri{color:#fff}
+.etapes-notes{padding-left:1.4em;margin:12px 0;font-size:1.05em;line-height:1.45}
+.etapes-notes li{margin:0 0 10px}
+.ok-notes{font-weight:600;color:var(--vert)}
 /* Impression (gros caractères) */
 #impression{display:none}
 @media print{
@@ -1803,7 +1808,7 @@ const LECTEUR = (() => {
 <script>
 'use strict';
 /* ================= Popote – application ================= */
-const VERSION = '1.6';
+const VERSION = '1.8';
 const LS_KEY = 'popote_v1';
 const LS_SECOURS = 'popote_v1_avant_import';
 const APERCU = (() => { try { return window.self !== window.top; } catch (e) { return true; } })(); // affiché dans claude.ai
@@ -2145,6 +2150,162 @@ function texteListe() {
   return t;
 }
 
+// Liste pour l'app Notes d'Apple : un article par ligne (sans symbole), dans l'ordre des rayons
+function texteNotes() {
+  const l = [];
+  for (const [, its] of articlesParRayon(true)) for (const it of its) { const q = qteArticle(it); l.push(nomArticle(it) + (q ? ' – ' + q : '')); }
+  return l.join('\n');
+}
+function modaleNotes() {
+  const n = UI.notes || { copie: false, t: '' }, nb = n.t ? n.t.split('\n').length : 0;
+  const etapes = `<ol class="etapes-notes">
+      <li>Ouvrez <b>Notes</b> et créez une nouvelle note. Tapez un titre (par exemple «&nbsp;Courses&nbsp;»), puis passez à la ligne.</li>
+      <li>Touchez le bouton <b>liste à cocher</b> (le rond avec une coche) dans la barre d’outils&nbsp;: un rond apparaît.</li>
+      <li>Touchez la ligne du rond, puis <b>Coller</b>&nbsp;: chaque article arrive sur sa ligne, avec son rond.</li>
+    </ol>
+    <p class="muted">Si les ronds n’apparaissent pas&nbsp;: sélectionnez les articles collés, puis touchez le bouton liste à cocher.</p>`;
+  if (n.copie) return `<h2>📝 Liste copiée pour Notes</h2>
+    <p class="ok-notes">✓ ${nb} article${nb > 1 ? 's' : ''} copié${nb > 1 ? 's' : ''}, dans l’ordre des rayons.</p>${etapes}
+    <div class="actions fin"><button class="btn" data-a="fermer">Fermer</button><a class="btn pri" href="mobilenotes://">Ouvrir Notes</a></div>`;
+  return `<h2>📝 Liste pour Notes</h2>
+    <p>La copie automatique n’a pas marché. Touchez <b>Copier</b> ci-dessous, ou bien touchez le texte, puis <b>Tout sélectionner</b> et <b>Copier</b>.</p>
+    <textarea id="txt-notes" style="min-height:35vh">${esc(n.t)}</textarea>
+    <div class="actions"><button class="btn pri" data-a="copierNotes">Copier</button></div>${etapes}
+    <div class="actions fin"><button class="btn" data-a="fermer">Fermer</button><a class="btn" href="mobilenotes://">Ouvrir Notes</a></div>`;
+}
+
+/* ---------- Liste de courses en PDF (impression depuis l'iPhone / l'iPad) ----------
+   Sur iPhone et iPad, une application ajoutée à l'écran d'accueil ne peut pas lancer
+   l'impression du navigateur. On fabrique donc un vrai PDF (A4, gros caractères) et on
+   l'envoie à la feuille de partage d'iOS, qui propose « Imprimer ». */
+const PDF_LARG = [[278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584,0,556,0,222,556,333,1000,556,556,333,1000,667,333,1000,0,611,0,0,222,222,333,333,350,556,1000,333,1000,500,333,944,0,500,667,278,333,556,556,556,556,260,556,333,737,370,556,584,333,737,333,400,584,0,0,333,556,537,278,333,0,365,556,834,834,834,611,667,667,667,667,667,667,1000,722,667,667,667,667,278,278,278,278,722,722,778,778,778,778,778,584,778,722,722,722,722,667,667,611,556,556,556,556,556,556,889,500,556,556,556,556,278,278,278,278,556,556,556,556,556,556,556,584,611,556,556,556,556,500,556,500],[278,333,474,556,556,889,722,238,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,333,333,584,584,584,611,975,722,722,722,722,667,611,778,722,278,556,722,611,833,722,778,667,778,722,667,611,722,667,944,667,667,611,333,278,333,584,556,333,556,611,556,611,556,333,611,611,278,278,556,278,889,611,611,611,611,389,556,333,611,556,778,556,556,500,389,280,389,584,0,556,0,278,556,500,1000,556,556,333,1000,667,333,1000,0,611,0,0,278,278,500,500,350,556,1000,333,1000,556,333,944,0,500,667,278,333,556,556,556,556,280,556,333,737,370,556,584,333,737,333,400,584,0,0,333,611,556,278,333,0,365,556,834,834,834,611,722,722,722,722,722,722,1000,722,667,667,667,667,278,278,278,278,722,722,778,778,778,778,778,584,778,722,722,722,722,667,667,611,556,556,556,556,556,556,889,556,556,556,556,556,278,278,278,278,611,611,611,611,611,611,611,584,611,611,611,611,611,556,611,556]];
+for (const t of PDF_LARG) { t[0xB2 - 32] = t[0xB3 - 32] = t[0xB9 - 32] = 333; }
+const CP1252_SUP = { 0x20AC: 0x80, 0x201A: 0x82, 0x192: 0x83, 0x201E: 0x84, 0x2026: 0x85, 0x2020: 0x86, 0x2021: 0x87, 0x2C6: 0x88, 0x2030: 0x89,
+  0x160: 0x8A, 0x2039: 0x8B, 0x152: 0x8C, 0x17D: 0x8E, 0x2018: 0x91, 0x2019: 0x92, 0x201C: 0x93, 0x201D: 0x94, 0x2022: 0x95, 0x2013: 0x96,
+  0x2014: 0x97, 0x2DC: 0x98, 0x2122: 0x99, 0x161: 0x9A, 0x203A: 0x9B, 0x153: 0x9C, 0x17E: 0x9E, 0x178: 0x9F };
+const PDF_REMPL = { '≈': '~', ' ': ' ', ' ': ' ', ' ': ' ', ' ': ' ', '−': '-', '‐': '-', '‑': '-', '☐': '', '­': '' };
+function pdfCode(ch) {
+  const u = ch.codePointAt(0);
+  const b = (u >= 32 && u < 127) || (u >= 0xA0 && u <= 0xFF) ? u : (CP1252_SUP[u] || -1);
+  return b >= 32 && PDF_LARG[0][b - 32] ? b : -1;
+}
+function pdfOctets(s) {
+  const o = [];
+  for (const ch of String(s || '').normalize('NFC')) {
+    const r = PDF_REMPL[ch] !== undefined ? PDF_REMPL[ch] : ch;
+    for (const c of r) {
+      let b = pdfCode(c);
+      if (b < 0) { const base = c.normalize('NFD')[0]; if (base !== c) b = pdfCode(base); }   // ā → a
+      if (b >= 0) o.push(b);                                                             // émojis : ignorés
+    }
+  }
+  while (o.length && o[0] === 32) o.shift();
+  while (o.length && o[o.length - 1] === 32) o.pop();
+  return o;
+}
+const pdfLarg = (o, gras, t) => o.reduce((a, b) => a + PDF_LARG[gras ? 1 : 0][b - 32], 0) * t / 1000;
+function pdfCouper(o, gras, t, max) {
+  const mots = []; let m = [];
+  for (const b of o) { if (b === 32) { mots.push(m); m = []; } else m.push(b); }
+  mots.push(m);
+  const lignes = []; let l = [];
+  for (let w of mots) {
+    if (!w.length) continue;
+    while (pdfLarg(w, gras, t) > max && w.length > 1) {          // mot trop long : on le coupe
+      let k = w.length - 1; while (k > 1 && pdfLarg(w.slice(0, k), gras, t) > max) k--;
+      if (l.length) { lignes.push(l); l = []; }
+      lignes.push(w.slice(0, k)); w = w.slice(k);
+    }
+    const essai = l.length ? l.concat([32], w) : w;
+    if (pdfLarg(essai, gras, t) <= max) l = essai; else { if (l.length) lignes.push(l); l = w; }
+  }
+  if (l.length || !lignes.length) lignes.push(l);
+  return lignes;
+}
+const pdfChaine = o => '(' + o.map(b => b === 40 || b === 41 || b === 92 ? '\\' + String.fromCharCode(b)
+  : b < 127 ? String.fromCharCode(b) : '\\' + b.toString(8).padStart(3, '0')).join('') + ')';
+const pdfN = n => String(Math.round(n * 100) / 100);
+
+function pdfAssembler(pages, titre) {
+  const objs = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    null,
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>',
+    `<< /Title ${pdfChaine(pdfOctets(titre))} /Producer (Popote) >>`
+  ];
+  const kids = [];
+  pages.forEach(ops => {
+    const flux = ops.join('\n'), pn = objs.length + 1;
+    objs.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${pn + 1} 0 R >>`);
+    objs.push(`<< /Length ${flux.length} >>\nstream\n${flux}\nendstream`);
+    kids.push(pn + ' 0 R');
+  });
+  objs[1] = `<< /Type /Pages /Kids [${kids.join(' ')}] /Count ${pages.length} >>`;
+  let s = '%PDF-1.4\n%\xE2\xE3\xCF\xD3\n'; const pos = [];
+  objs.forEach((o, i) => { pos.push(s.length); s += `${i + 1} 0 obj\n${o}\nendobj\n`; });
+  const xref = s.length;
+  s += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n` + pos.map(p => String(p).padStart(10, '0') + ' 00000 n \n').join('');
+  s += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R /Info 5 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+  const octets = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) octets[i] = s.charCodeAt(i) & 255;
+  return octets;
+}
+
+// Mise en page A4, gros caractères (comme l'impression classique de la liste)
+function pdfListe() {
+  const W = 595.28, H = 841.89, M = 34, X1 = W - M, BAS = M + 14;
+  const TN = 20, TQ = 17, LN = TN * 1.22, LQ = TQ * 1.22, PAD = 7.09, CASE = 22.68, XN = M + CASE + 14.17;
+  const TH = 18, H_TETE = 19.8 + TH * 1.2 + 2 + 5.67;
+  const pages = []; let ops, y, haut;
+  const page = () => { ops = []; pages.push(ops); y = H - M; haut = true; };
+  const texte = (o, x, yb, t, gras, gris) => ops.push((gris ? '0.35 g ' : '') + `BT /F${gras ? 2 : 1} ${t} Tf ${pdfN(x)} ${pdfN(yb)} Td ${pdfChaine(o)} Tj ET` + (gris ? ' 0 g' : ''));
+  const trait = (yy, ep, gris) => ops.push(`${gris ? '0.6' : '0'} G ${ep} w ${pdfN(M)} ${pdfN(yy)} m ${pdfN(X1)} ${pdfN(yy)} l S`);
+  const tete = libelle => {
+    if (!haut) y -= 19.8;
+    const yb = y - TH * 0.95;
+    for (const l of pdfCouper(pdfOctets(libelle.toUpperCase()), true, TH, X1 - M).slice(0, 1)) texte(l, M, yb, TH, true);
+    y = yb - TH * 0.25 - 1; trait(y, 2); y -= 1 + 5.67; haut = false;
+  };
+  const c = S.courses;
+  page();
+  let yb = y - 26 * 0.95; texte(pdfOctets('Liste de courses'), M, yb, 26, true); y = yb - 26 * 0.3;
+  if (c.du && c.au) {
+    const sous = 'Du ' + fmtDate(c.du, { weekday: 'long', day: 'numeric', month: 'long' }) + ' au ' + fmtDate(c.au, { weekday: 'long', day: 'numeric', month: 'long' });
+    for (const l of pdfCouper(pdfOctets(sous), false, 15, X1 - M)) { yb = y - 15 * 1.1; texte(l, M, yb, 15, false, true); y = yb - 15 * 0.2; }
+  }
+  y -= 4; haut = false;
+  for (const [r, its] of articlesParRayon(true)) {
+    let premier = true;
+    for (const it of its) {
+      const q = pdfOctets(qteArticle(it));
+      let ql = q.length ? [q] : [], qw = q.length ? pdfLarg(q, false, TQ) : 0;
+      const maxQ = (X1 - XN) * 0.45;
+      if (qw > maxQ) { ql = pdfCouper(q, false, TQ, maxQ); qw = Math.max(...ql.map(l => pdfLarg(l, false, TQ))); }
+      const nl = pdfCouper(pdfOctets(nomArticle(it)), false, TN, X1 - XN - (qw ? qw + 14 : 0));
+      const hRang = PAD * 2 + Math.max(LN, nl.length * LN, ql.length * LQ);
+      const besoin = hRang + (premier ? H_TETE : 0);
+      if (y - besoin < BAS) { page(); tete(RAYONS[r] + (premier ? '' : ' (suite)')); }
+      else if (premier) tete(RAYONS[r]);
+      premier = false;
+      const b1 = y - PAD - (LN - 0.925 * TN) / 2 - 0.718 * TN, centre = y - PAD - LN / 2;
+      ops.push(`0 G 2 w ${pdfN(M + 1)} ${pdfN(centre - CASE / 2 + 1)} ${pdfN(CASE - 2)} ${pdfN(CASE - 2)} re S`);
+      nl.forEach((l, k) => texte(l, XN, b1 - k * LN, TN, false));
+      ql.forEach((l, k) => texte(l, X1 - pdfLarg(l, false, TQ), b1 - k * LQ, TQ, false));
+      y -= hRang; trait(y, 1, true);
+    }
+  }
+  // Lignes pour les notes, seulement s'il reste de la place (jamais de page vide)
+  const nbNotes = Math.min(5, Math.floor((y - H_TETE - BAS) / 36.85));
+  if (nbNotes >= 2) { tete('Notes'); for (let k = 0; k < nbNotes; k++) { y -= 36.85; trait(y, 1, true); } }
+  if (pages.length > 1) pages.forEach((p, i) => {
+    const o = pdfOctets('Liste de courses – page ' + (i + 1) + ' / ' + pages.length);
+    p.push(`0.35 g BT /F1 10 Tf ${pdfN(X1 - pdfLarg(o, false, 10))} 18 Td ${pdfChaine(o)} Tj ET 0 g`);
+  });
+  return pdfAssembler(pages, 'Liste de courses');
+}
+const estMobile = () => /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
 /* ---------- Interface : état d'affichage ---------- */
 const UI = { onglet: 'menus', semaine: lundiDe(auj()), rq: '', rfiltre: 'tous', pdate: auj(), ppers: null, pile: [] };
 
@@ -2407,7 +2568,7 @@ function vueCourses() {
   h += `<div class="carte"><div class="lbl">Ajouter un article</div>
     <div class="ing-ligne" style="grid-template-columns:1fr 1fr"><input type="text" id="m-nom" data-ac="ing" autocomplete="off" placeholder="Ex. : café, papier toilette…"><input type="text" id="m-qte" placeholder="Quantité (facultatif)"></div>
     <div class="ligne"><select id="m-r">${RAYON_ORDRE.map(r => `<option value="${r}" ${r === 'dv' ? 'selected' : ''}>${RAYONS[r]}</option>`).join('')}</select><button class="btn pri" data-a="ajouterArticle">Ajouter</button></div></div>`;
-  if (c.items.length) h += `<div class="actions"><button class="btn pri" data-a="scanOuvrir">📷 Scanner les achats au retour</button><button class="btn" data-a="partagerListe">📤 Envoyer la liste</button><button class="btn" data-a="imprimerListe">🖨 Imprimer</button>
+  if (c.items.length) h += `<div class="actions"><button class="btn pri" data-a="scanOuvrir">📷 Scanner les achats au retour</button><button class="btn" data-a="versNotes">📝 Copier pour Notes</button><button class="btn" data-a="partagerListe">📤 Envoyer la liste</button><button class="btn" data-a="imprimerListe">🖨 Imprimer</button>
     <button class="btn" data-a="rangerCoches">🧺 Ranger les articles cochés dans le stock</button><button class="btn" data-a="effacerCoches">Effacer les cochés</button><button class="btn del" data-a="viderListe">Tout effacer</button></div>`;
   return h;
 }
@@ -2718,7 +2879,30 @@ const A = {
     try { await navigator.clipboard.writeText(t); toast('Liste copiée : collez-la dans Messages ou Notes.'); return; } catch (e) { }
     ouvrir(() => `<h2>Liste de courses</h2><p class="muted petit">Sélectionnez le texte et copiez-le.</p><textarea style="min-height:50vh">${esc(t)}</textarea>`);
   },
-  imprimerListe: () => {
+  versNotes: async () => {
+    const t = texteNotes();
+    if (!t) return toast('Tout est coché : rien à copier.');
+    UI.notes = { copie: false, t };
+    try { await navigator.clipboard.writeText(t); UI.notes.copie = true; } catch (e) { }
+    ouvrir(modaleNotes);
+  },
+  copierNotes: async () => {
+    const ta = $('#txt-notes');
+    try { await navigator.clipboard.writeText(UI.notes.t); UI.notes.copie = true; dessinerModale(); return; } catch (e) { }
+    try { ta.focus(); ta.select(); ta.setSelectionRange(0, ta.value.length); if (document.execCommand('copy')) { UI.notes.copie = true; dessinerModale(); return; } } catch (e) { }
+    toast('Copie impossible : sélectionnez le texte et copiez-le.');
+  },
+  imprimerListe: async () => {
+    if (!articlesParRayon(true).length) return toast('Tout est coché : rien à imprimer.');
+    if (estMobile()) {
+      // iPhone / iPad : PDF envoyé à la feuille de partage (choisir « Imprimer »)
+      let f = null;
+      try { f = new File([pdfListe()], 'Liste de courses.pdf', { type: 'application/pdf' }); } catch (e) { }
+      if (f && navigator.canShare && navigator.canShare({ files: [f] })) {
+        try { await navigator.share({ files: [f] }); return; }
+        catch (e) { if (e && e.name === 'AbortError') return; }
+      }
+    }
     if (APERCU) return toast(MSG_APERCU);
     const c = S.courses;
     let h = `<h1>Liste de courses${c.du ? ' – du ' + fmtDate(c.du, { day: 'numeric', month: 'long' }) + ' au ' + fmtDate(c.au, { day: 'numeric', month: 'long' }) : ''}</h1>`;
