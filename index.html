@@ -203,6 +203,15 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .entete,main{padding-left:max(14px,env(safe-area-inset-left));padding-right:max(14px,env(safe-area-inset-right))}
 .onglets{padding-left:max(4px,env(safe-area-inset-left));padding-right:max(4px,env(safe-area-inset-right))}
 .a-faire{color:#9a4a1f!important;font-weight:600}
+.rec .t small.a-faire{font-weight:600}
+ul.ingr li.ing-t{cursor:pointer;align-items:center;min-height:44px}
+ul.ingr li .ing-n{display:flex;align-items:center;gap:10px;color:var(--encre);text-align:left}
+ul.ingr li .ing-n > span:not(.case-ing){color:var(--encre);text-align:left}
+ul.ingr li > span:last-child{white-space:nowrap}
+ul.ingr li .case-ing{flex:0 0 26px;height:26px;border:2.5px solid var(--vert);border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;color:#fff;background:var(--vert)}
+ul.ingr li.off .case-ing{background:transparent}
+ul.ingr li.off .ing-n > span:last-child{text-decoration:line-through;color:var(--doux)}
+.chip.naime{background:var(--terre-clair);border-color:#E8C3B0}
 .st-ctl{display:flex;align-items:center;gap:10px;margin-left:auto}
 .ligne-dates label{display:flex;align-items:center;gap:8px;flex:1 1 170px}
 .ligne-dates label input{flex:1;min-width:0}
@@ -822,7 +831,7 @@ const LECTEUR = (() => {
 <script>
 'use strict';
 /* ================= Popote – application ================= */
-const VERSION = '1.1';
+const VERSION = '1.2';
 const LS_KEY = 'popote_v1';
 const LS_SECOURS = 'popote_v1_avant_import';
 const APERCU = (() => { try { return window.self !== window.top; } catch (e) { return true; } })(); // affiché dans claude.ai
@@ -863,14 +872,15 @@ function etatInitial() {
   return {
     v: 1,
     personnes: [
-      { id: 'p1', nom: 'Moi', coef: 1, presentDefaut: true, suivi: true, budget: 30, agsMax: 16 },
-      { id: 'p2', nom: 'Ma femme', coef: 0.8, presentDefaut: true, suivi: true, budget: 23, agsMax: 12 },
-      { id: 'e1', nom: 'Enfant 1', coef: 1.3, presentDefaut: false, suivi: false, budget: 0, agsMax: 20 },
-      { id: 'e2', nom: 'Enfant 2', coef: 1.3, presentDefaut: false, suivi: false, budget: 0, agsMax: 20 },
-      { id: 'e3', nom: 'Enfant 3', coef: 1.3, presentDefaut: false, suivi: false, budget: 0, agsMax: 20 }
+      { id: 'p1', nom: 'Moi', coef: 1, presentDefaut: true, suivi: true, budget: 30, agsMax: 16, naime: [] },
+      { id: 'p2', nom: 'Ma femme', coef: 0.8, presentDefaut: true, suivi: true, budget: 23, agsMax: 12, naime: [] },
+      { id: 'e1', nom: 'Enfant 1', coef: 1.3, presentDefaut: false, suivi: false, budget: 0, agsMax: 20, naime: [] },
+      { id: 'e2', nom: 'Enfant 2', coef: 1.3, presentDefaut: false, suivi: false, budget: 0, agsMax: 20, naime: [] },
+      { id: 'e3', nom: 'Enfant 3', coef: 1.3, presentDefaut: false, suivi: false, budget: 0, agsMax: 20, naime: [] }
     ],
     sejours: [], repas: {}, extras: {}, recettesPerso: [], ingrPerso: [], stock: [],
     codes: {}, scan: [], // codes-barres déjà rencontrés ; produits scannés pas encore rangés
+    retraits: {}, // aliments retirés d'une recette : { id recette: [id aliment, …] }
     courses: { du: null, au: null, items: [], deja: [] },
     favoris: [], recents: [],
     options: { zeroFL: true, entreeSoir: true, dessertMidi: false },
@@ -889,6 +899,7 @@ function completer(o) { // ajoute les champs manquants (versions futures)
   for (const k of Object.keys(base)) if (o[k] === undefined) o[k] = base[k];
   o.options = Object.assign({}, base.options, o.options || {});
   o.courses = Object.assign({}, base.courses, o.courses || {});
+  (o.personnes || []).forEach(p => { if (!Array.isArray(p.naime)) p.naime = []; });
   return o;
 }
 let avertiStockage = false;
@@ -928,7 +939,20 @@ function nutrListe(liste) { // liste = [[id, g], ...]
   }
   return { kcal: t[0], prot: t[1], ags: t[2], sucres: t[3], fib: t[4], chol: t[5], pts: formule(tp) };
 }
-const nutrRecette = r => nutrListe(r.i);
+/* Goûts : aliments retirés d'une recette (pour tout le foyer) et aliments que chacun n'aime pas */
+const retraitsDe = r => (r && S.retraits[r.id]) || [];
+const ingRecette = r => { const x = S.retraits[r.id]; return x && x.length ? r.i.filter(([id]) => !x.includes(id)) : r.i; };
+function conflits(r, qui) { // [{ p, id }] : aliments de la recette que ces personnes n'aiment pas
+  const l = [], ids = new Set(ingRecette(r).map(([id]) => id));
+  for (const p of qui) for (const id of p.naime || []) if (ids.has(id)) l.push({ p, id });
+  return l;
+}
+function texteConflits(c) { // « Ma femme n'aime pas fenouil · Moi n'aime pas coriandre »
+  const par = {};
+  for (const { p, id } of c) { const l = par[p.nom] = par[p.nom] || []; const nom = ING[id] ? ING[id].nom.toLowerCase() : id; if (!l.includes(nom)) l.push(nom); }
+  return Object.entries(par).map(([n, l]) => n + ' n’aime pas : ' + l.join(', ')).join(' · ');
+}
+const nutrRecette = r => nutrListe(ingRecette(r));
 const ptsPour = (brut, coef) => Math.round(brut * coef);
 function badgeAGS(g) { return g <= 3 ? '' : g <= 5 ? 'o' : 'r'; }
 function badgeChol(mg) { return mg <= 100 ? '' : mg <= 200 ? 'o' : 'r'; }
@@ -945,7 +969,7 @@ function qteRecette(id, g) {
     if (i.ul === 'gousse') { const r = Math.max(1, Math.round(n)); return r + ' ' + pluriel('gousse', r); }
     if (i.ul === '') return demi(n);
     const unite = i.ul || 'pièce';
-    return demi(n) + ' ' + pluriel(unite, Math.ceil(n)) + ' (' + nb(Math.round(g / 5) * 5) + ' g)';
+    return demi(n) + ' ' + pluriel(unite, Math.round(n * 2) / 2 >= 2 ? 2 : 1) + ' (' + nb(Math.round(g / 5) * 5) + ' g)';
   }
   const arr = g > 20 ? Math.round(g / 5) * 5 : Math.round(g);
   return fmtPoids(arr, i.u);
@@ -1004,7 +1028,7 @@ function besoinsRepas(date, slot) {
   const m = repas(date, slot), need = {};
   if (!m || m.dehors || !m.items.length) return need;
   const f = facteur(date, slot); if (!f) return need;
-  for (const rid of m.items) { const r = REC[rid]; if (!r) continue; for (const [id, g] of r.i) need[id] = (need[id] || 0) + g * f; }
+  for (const rid of m.items) { const r = REC[rid]; if (!r) continue; for (const [id, g] of ingRecette(r)) need[id] = (need[id] || 0) + g * f; }
   return need;
 }
 
@@ -1082,18 +1106,20 @@ function proposerSemaine(lundi, opts) {
   const entreeSuivante = pioche(entrees), dessertSuivant = pioche(desserts);
   const cible = t => CIBLES[t] * nbRepas / 14;
   let n = 0;
+  const sansConflit = (suivante, nbMax, qui) => { for (let k = 0; k < nbMax; k++) { const x = suivante(); if (!conflits(x, qui).length) return x; } return null; };
   for (const [d, s] of aRemplir) {
+    const qui = presentsRepas(d, s), permis = r => !conflits(r, qui).length; // personne à table n'en mange pas à contrecœur
     // type le plus en retard, avec préférence midi/soir
-    const types = Object.keys(CIBLES).filter(t => plats.some(r => typeRecette(r) === t && !dejaSemaine.has(r.id)));
+    const types = Object.keys(CIBLES).filter(t => plats.some(r => typeRecette(r) === t && !dejaSemaine.has(r.id) && permis(r)));
     if (!types.length) break;
     types.sort((a, b) => (cible(b) - compte[b] + (PREF[s].includes(b) ? 0.6 : 0)) - (cible(a) - compte[a] + (PREF[s].includes(a) ? 0.6 : 0)));
     let t = types[0];
     if (t === 'viande' && compte.viande >= Math.ceil(cible('viande'))) t = types[1] || t;
-    const cands = plats.filter(r => typeRecette(r) === t && !dejaSemaine.has(r.id));
+    const cands = plats.filter(r => typeRecette(r) === t && !dejaSemaine.has(r.id) && permis(r));
     const poids = cands.map(r => {
       let w = recentes.has(r.id) ? 0.25 : 1;
       if (S.favoris.includes(r.id)) w *= 2.5;
-      if (r.i.some(([id]) => urg.has(id))) w *= 4;
+      if (ingRecette(r).some(([id]) => urg.has(id))) w *= 4;
       if (s === 'din') { const p = nutrRecette(r).pts; w *= p <= 9 ? 1.5 : p >= 13 ? 0.5 : 1; }
       return w;
     });
@@ -1101,8 +1127,8 @@ function proposerSemaine(lundi, opts) {
     const m = repas(d, s, true);
     if (m.cuisine) restaurerStock(d, s);
     m.items = [r.id]; m.cuisine = false; dejaSemaine.add(r.id); compte[t]++; n++;
-    if (s === 'din' && opts.entree && entrees.length && !r.tags.includes('soupe')) m.items.unshift(entreeSuivante().id);
-    if (s === 'dej' && opts.dessert && desserts.length) m.items.push(dessertSuivant().id);
+    if (s === 'din' && opts.entree && entrees.length && !r.tags.includes('soupe')) { const e = sansConflit(entreeSuivante, entrees.length, qui); if (e) m.items.unshift(e.id); }
+    if (s === 'dej' && opts.dessert && desserts.length) { const e = sansConflit(dessertSuivant, desserts.length, qui); if (e) m.items.push(e.id); }
   }
   return n;
 }
@@ -1205,7 +1231,7 @@ function carteSlot(d, s) {
   let corps;
   if (m && m.dehors) corps = '<div class="vide">Pas de repas à la maison</div>';
   else if (!m || !m.items.length) corps = '<div class="vide">＋ Choisir le repas</div>';
-  else corps = m.items.map(rid => { const r = REC[rid]; return r ? `<div class="plat"><span class="cat-${r.cat}">${esc(r.nom)}</span></div>` : ''; }).join('');
+  else { const qui = presentsRepas(d, s); corps = m.items.map(rid => { const r = REC[rid]; return r ? `<div class="plat"><span class="cat-${r.cat}">${esc(r.nom)}</span>${conflits(r, qui).length ? ' <span class="a-faire">⚠</span>' : ''}</div>` : ''; }).join(''); }
   let pts = '';
   if (m && !m.dehors && m.items.length) {
     pts = S.personnes.filter(p => p.suivi).map(p => { const x = ptsRepasPersonne(d, s, p); return x ? `${esc(p.nom)} <b>${x.pts} pts</b>` : ''; }).filter(Boolean).join(' · ');
@@ -1226,6 +1252,8 @@ function modaleSlot() {
     const r = REC[rid]; if (!r) return; const n = nutrRecette(r);
     h += `<div class="item-menu"><span class="muted petit">${NOM_CAT[r.cat]}</span><button class="lien" data-a="voirRecette" data-r="${rid}">${esc(r.nom)}</button><span class="badge">${Math.round(n.pts)} pts</span><button class="btn ic del" data-a="retirerItem" data-i="${k}" aria-label="Retirer">✕</button></div>`;
   });
+  const cf = m.items.flatMap(rid => REC[rid] ? conflits(REC[rid], presentsRepas(d, s)) : []);
+  if (cf.length) h += `<div class="alerte petit">⚠ ${esc(texteConflits(cf))}. Touchez la recette pour retirer l’aliment, ou choisissez-en une autre.</div>`;
   h += `<div class="actions"><button class="btn pri" data-a="choisir" data-cat="plat">＋ Plat</button><button class="btn" data-a="choisir" data-cat="entree">＋ Entrée</button><button class="btn" data-a="choisir" data-cat="dessert">＋ Dessert</button></div></div>`;
   if (m.items.length && !m.dehors) {
     const lignes = S.personnes.filter(p => p.suivi).map(p => { const x = ptsRepasPersonne(d, s, p); return x ? `<div class="ligne-pts"><span class="t">${esc(p.nom)}</span><span class="badge">${x.pts} pts</span><span class="badge ${badgeAGS(x.ags)} g">AGS ${nb(x.ags, 1)} g</span></div>` : ''; }).join('');
@@ -1249,18 +1277,24 @@ function listeChoix() {
   const rs = toutesRecettes().filter(r => r.cat === UI.choixCat && (!q || r.nom.toLowerCase().includes(q)))
     .sort((a, b) => { const sa = (a.saison.includes(saison) || a.saison.includes('toutes')) ? 0 : 1, sb = (b.saison.includes(saison) || b.saison.includes('toutes')) ? 0 : 1; return sa - sb || a.nom.localeCompare(b.nom, 'fr'); });
   if (!rs.length) return '<p class="muted">Aucune recette.</p>';
-  return rs.map(r => carteRecette(r, 'prendre')).join('');
+  const qui = UI.slot ? presentsRepas(UI.slot.d, UI.slot.s) : S.personnes;
+  return rs.map(r => carteRecette(r, 'prendre', qui)).join('');
 }
-function carteRecette(r, action) {
+function ligneGouts(r, qui) {
+  const ret = retraitsDe(r).filter(id => r.i.some(([x]) => x === id)), c = conflits(r, qui);
+  return (ret.length ? `<small>Sans ${esc(ret.map(id => ING[id] ? ING[id].nom.toLowerCase() : id).join(', '))}</small>` : '')
+    + (c.length ? `<small class="a-faire">⚠ ${esc(texteConflits(c))}</small>` : '');
+}
+function carteRecette(r, action, qui) {
   const n = nutrRecette(r); const saison = saisonDe(auj());
   const horsSaison = !(r.saison.includes('toutes') || r.saison.includes(saison));
   return `<button class="rec" data-a="${action}" data-r="${r.id}"><span class="t">${S.favoris.includes(r.id) ? '<span class="etoile">★</span> ' : ''}${esc(r.nom)}
-    <small>${NOM_CAT[r.cat]} · ${r.temps} min${r.tags.length ? ' · ' + r.tags.map(t => NOM_TAG[t]).join(', ') : ''}${horsSaison ? ' · hors saison' : ''}${r.perso ? ' · ma recette' : ''}</small></span>
+    <small>${NOM_CAT[r.cat]} · ${r.temps} min${r.tags.length ? ' · ' + r.tags.map(t => NOM_TAG[t]).join(', ') : ''}${horsSaison ? ' · hors saison' : ''}${r.perso ? ' · ma recette' : ''}</small>${ligneGouts(r, qui || S.personnes)}</span>
     <span class="badges" style="margin:0;flex-direction:column;align-items:flex-end"><span class="badge">${Math.round(n.pts)} pts</span><span class="badge ${badgeAGS(n.ags)} g">AGS ${nb(n.ags, 1)} g</span></span></button>`;
 }
 function modaleProposer() {
   return `<h2>✨ Proposer les menus</h2>
-    <p>Pour la semaine du ${fmtDate(UI.semaine, { day: 'numeric', month: 'long' })}. Le programme équilibre la semaine : environ 3 repas de poisson, 3 de légumineuses, 3 de volaille, 1 seule viande rouge ou porc, des soirs plus légers, des recettes de saison, et il utilise en priorité ce qui est à consommer vite.</p>
+    <p>Pour la semaine du ${fmtDate(UI.semaine, { day: 'numeric', month: 'long' })}. Le programme équilibre la semaine : environ 3 repas de poisson, 3 de légumineuses, 3 de volaille, 1 seule viande rouge ou porc, des soirs plus légers, des recettes de saison, et il utilise en priorité ce qui est à consommer vite. Il ne propose pas de recette contenant un aliment qu’une personne à table n’aime pas (réglage dans Foyer), sauf si vous avez retiré cet aliment de la recette.</p>
     <div class="sec">
       <label class="switch"><input type="checkbox" id="pr-remplacer"> Remplacer aussi les repas déjà choisis</label>
       <label class="switch"><input type="checkbox" id="pr-entree" ${S.options.entreeSoir ? 'checked' : ''}> Ajouter une entrée de légumes le soir</label>
@@ -1303,7 +1337,11 @@ function modaleRecette() {
   const suivis = S.personnes.filter(p => p.suivi);
   if (suivis.length) h += `<p class="petit">Pour chacun : ${suivis.map(p => `${esc(p.nom)} <b>${ptsPour(n.pts, p.coef)} pts</b>`).join(' · ')}</p>`;
   h += `<div class="sec"><div class="ligne" style="margin-top:0"><span class="lbl" style="margin:0;flex:1">Ingrédients</span><button class="btn ic" data-a="portions" data-v="-1">−</button><b>${N} portion${N > 1 ? 's' : ''}</b><button class="btn ic" data-a="portions" data-v="1">＋</button></div>
-    <ul class="ingr">${r.i.map(([id, g]) => `<li><span>${esc(ING[id] ? ING[id].nom : id + ' (aliment inconnu)')}</span><span>${qteRecette(id, g * N)}</span></li>`).join('')}</ul></div>`;
+    <ul class="ingr">${r.i.map(([id, g]) => {
+      const off = retraitsDe(r).includes(id), qui = S.personnes.filter(p => (p.naime || []).includes(id));
+      return `<li class="ing-t ${off ? 'off' : ''}" data-a="basculeIng" data-i="${esc(id)}" role="button"><span class="ing-n"><span class="case-ing">${off ? '' : '✓'}</span><span>${esc(ING[id] ? ING[id].nom : id + ' (aliment inconnu)')}${qui.length ? `<small class="a-faire"> ⚠ ${esc(qui.map(p => p.nom).join(', '))} n’aime pas</small>` : ''}</span></span><span>${off ? 'retiré' : qteRecette(id, g * N)}</span></li>`;
+    }).join('')}</ul>
+    <p class="muted petit" style="margin:8px 0 0">Touchez un ingrédient pour le retirer de cette recette, ou pour le remettre. Un ingrédient retiré n’est plus compté dans les courses, le stock ni les points.</p></div>`;
   h += `<div class="sec"><div class="lbl">Préparation</div><ol class="etapes">${r.e.map(x => `<li>${esc(x)}</li>`).join('')}</ol></div>`;
   h += `<div class="actions"><button class="btn" data-a="favori">${S.favoris.includes(r.id) ? '★ Favori' : '☆ Ajouter aux favoris'}</button>
     <button class="btn pri" data-a="ajouterAuMenu">📅 Mettre au menu</button>
@@ -1319,7 +1357,7 @@ function modaleAuMenu() {
 function modaleAvecStock() {
   const res = [];
   for (const r of toutesRecettes()) {
-    const utiles = r.i.filter(([id]) => ING[id] && ING[id].r !== 'pl' && ING[id].ul !== 'botte');
+    const utiles = ingRecette(r).filter(([id]) => ING[id] && ING[id].r !== 'pl' && ING[id].ul !== 'botte');
     if (!utiles.length) continue;
     const enStock = utiles.filter(([id]) => stockDe(id) > 0);
     const urg = utiles.some(([id]) => urgents().some(s => s.ing === id));
@@ -1517,6 +1555,9 @@ function vueFoyer() {
       <label class="switch"><input type="checkbox" data-c="pe-suivi" data-p="${p.id}" ${p.suivi ? 'checked' : ''}> Compter ses points</label>
       ${p.suivi ? `<div class="grille2"><label class="champ"><span>Points par jour</span><input type="number" min="0" inputmode="numeric" data-c="pe-budget" data-p="${p.id}" value="${p.budget}"></label>
       <label class="champ"><span>Repère graisses saturées (g/jour)</span><input type="number" min="0" inputmode="numeric" data-c="pe-ags" data-p="${p.id}" value="${p.agsMax}"></label></div>` : ''}
+      <div class="champ"><span>N’aime pas</span>
+        ${(p.naime || []).length ? `<div class="chips">${p.naime.map(id => `<button class="chip naime" data-a="retirerNaime" data-p="${p.id}" data-i="${esc(id)}">${esc(ING[id] ? ING[id].nom : id)} ✕</button>`).join('')}</div>` : '<span class="muted petit">Rien pour l’instant.</span>'}
+        <input type="text" list="dl-ingr" data-c="pe-naime" data-i="pe-naime" data-p="${p.id}" placeholder="＋ Ajouter un aliment (ex. : fenouil)" autocomplete="off"></div>
       ${S.personnes.length > 1 ? `<div class="actions fin" style="margin-top:4px"><button class="btn del petit" data-a="supprPersonne" data-p="${p.id}">Retirer cette personne</button></div>` : ''}</div>`;
   }
   h += `<div class="actions"><button class="btn" data-a="ajoutPersonne">＋ Ajouter une personne</button></div>`;
@@ -1543,6 +1584,7 @@ function vueFoyer() {
     <p><b>Points</b> : estimation avec la formule publique proche des « SmartPoints » de Weight Watchers (calories × 0,0305 + graisses saturées × 0,275 + sucres × 0,12 − protéines × 0,098), sur le total de la recette. Ce ne sont pas les points officiels de l’application WW, mais ils permettent de comparer les repas et de tenir un budget quotidien.</p>
     <p><b>Valeurs nutritionnelles</b> : ordres de grandeur pour 100 g d’aliment cru, du type de la table Ciqual de l’ANSES. Vous pouvez créer vos propres aliments avec les valeurs de l’étiquette.</p>
     <p><b>Cholestérol</b> : le repère par défaut des graisses saturées correspond à environ 7 % des calories de la journée, valeur souvent conseillée en cas de cholestérol élevé. Ajustez-le avec votre médecin. Pastilles : vert ≤ 3 g par portion, orange ≤ 5 g, rouge au-delà.</p>
+    <p><b>Goûts</b> : les recettes qui contiennent un aliment qu’une personne à table n’aime pas ne sont pas proposées automatiquement ; vous pouvez retirer un aliment d’une recette en touchant son nom dans la fiche de la recette.</p>
     <p><b>Codes-barres</b> : les informations sur les produits viennent d’Open Food Facts, base de données libre et collaborative. L’aliment correspondant est proposé automatiquement ; vos corrections sont retenues et un produit déjà rangé est reconnu ensuite sans connexion. Les produits pesés en magasin (étiquette de balance) demandent le poids à chaque fois.</p>
     <p class="muted">Popote version ${VERSION}</p></div>`;
   return h;
@@ -1598,10 +1640,10 @@ const A = {
   },
   avecStock: () => ouvrir(modaleAvecStock),
   nouvelleRecette: () => { UI.edit = nouvelleRecetteVide(); UI.edit.i = [['', 0]]; ouvrir(modaleEditeur); },
-  copierRecette: () => { const r = REC[UI.recette]; UI.edit = JSON.parse(JSON.stringify(r)); UI.edit.id = 'rp_' + uid(); UI.edit.nom = r.nom + ' (ma version)'; UI.edit.perso = true; ouvrir(modaleEditeur); },
+  copierRecette: () => { const r = REC[UI.recette]; UI.edit = JSON.parse(JSON.stringify(r)); UI.edit.i = JSON.parse(JSON.stringify(ingRecette(r))); UI.edit.id = 'rp_' + uid(); UI.edit.nom = r.nom + ' (ma version)'; UI.edit.perso = true; ouvrir(modaleEditeur); },
   modifierRecette: () => { UI.edit = JSON.parse(JSON.stringify(REC[UI.recette])); ouvrir(modaleEditeur); },
   supprimerRecette: () => confirmer('Supprimer définitivement la recette « ' + esc(REC[UI.recette].nom) + ' » ?', 'Supprimer', () => {
-    const id = UI.recette; S.recettesPerso = S.recettesPerso.filter(r => r.id !== id); S.favoris = S.favoris.filter(x => x !== id);
+    const id = UI.recette; S.recettesPerso = S.recettesPerso.filter(r => r.id !== id); S.favoris = S.favoris.filter(x => x !== id); delete S.retraits[id];
     for (const d in S.repas) for (const s in S.repas[d]) S.repas[d][s].items = S.repas[d][s].items.filter(x => x !== id);
     reindexer(); majDatalists(); sauver(); UI.pile = []; dessinerModale();
   }, true),
@@ -1710,6 +1752,14 @@ const A = {
     if (k >= 0) S.stock[k] = obj; else S.stock.push(obj);
     sauver(); fermer(); toast('Stock mis à jour.');
   },
+  basculeIng: el => {
+    const r = REC[UI.recette]; if (!r) return;
+    const id = el.dataset.i, l = retraitsDe(r).slice(), k = l.indexOf(id);
+    if (k >= 0) l.splice(k, 1); else l.push(id);
+    if (l.length) S.retraits[r.id] = l; else delete S.retraits[r.id];
+    sauver(); rafraichirModale();
+  },
+  retirerNaime: el => { const p = personne(el.dataset.p); p.naime = (p.naime || []).filter(x => x !== el.dataset.i); sauver(); rendre(); },
   // Points
   ppers: el => { UI.ppers = el.dataset.p; rendre(); },
   pjour: el => { UI.pdate = addDays(UI.pdate, +el.dataset.v); rendre(); },
@@ -1724,7 +1774,7 @@ const A = {
   extraRapide: el => { const e = S.recents[+el.dataset.k]; if (e) { ajouterExtra(e); rendre(); toast('Ajouté : ' + e.pts + ' points.'); } },
   retirerExtra: el => { const l = (S.extras[UI.pdate] || {})[UI.ppers] || []; S.extras[UI.pdate][UI.ppers] = l.filter(x => x.id !== el.dataset.id); sauver(); rendre(); },
   // Foyer
-  ajoutPersonne: () => { S.personnes.push({ id: 'x' + uid(), nom: 'Nouvelle personne', coef: 1, presentDefaut: false, suivi: false, budget: 23, agsMax: 15 }); sauver(); rendre(); },
+  ajoutPersonne: () => { S.personnes.push({ id: 'x' + uid(), nom: 'Nouvelle personne', coef: 1, presentDefaut: false, suivi: false, budget: 23, agsMax: 15, naime: [] }); sauver(); rendre(); },
   supprPersonne: el => { const p = personne(el.dataset.p); confirmer('Retirer ' + esc(p.nom) + ' du foyer ?', 'Retirer', () => { S.personnes = S.personnes.filter(x => x.id !== p.id); S.sejours = S.sejours.filter(s => s.pid !== p.id); sauver(); }, true); },
   sejQui: el => { memoSejour(); const id = el.dataset.p; UI.sejQui = UI.sejQui || []; UI.sejQui = UI.sejQui.includes(id) ? UI.sejQui.filter(x => x !== id) : [...UI.sejQui, id]; rendre(); },
   ajoutSejour: () => {
@@ -1806,7 +1856,16 @@ const C = {
   'pe-suivi': el => { personne(el.dataset.p).suivi = el.checked; sauver(); rendre(); },
   'pe-budget': el => { personne(el.dataset.p).budget = Math.max(0, parseInt(el.value) || 0); sauver(); },
   'pe-ags': el => { personne(el.dataset.p).agsMax = Math.max(0, parseInt(el.value) || 0); sauver(); },
-  'opt-zero': el => { S.options.zeroFL = el.checked; sauver(); }
+  'opt-zero': el => { S.options.zeroFL = el.checked; sauver(); },
+  'pe-naime': el => {
+    let a = alimentParNom(el.value);
+    if (!a) { // « maquereau » → « Filet de maquereau frais »
+      const n = norm(el.value), c = n.length >= 3 ? Object.values(ING).filter(i => norm(i.nom).includes(n)) : [];
+      if (c.length === 1) a = c[0];
+      else if (c.length > 1) return toast('Plusieurs aliments correspondent : ' + c.slice(0, 4).map(i => i.nom).join(', ') + (c.length > 4 ? '…' : '') + '. Choisissez dans la liste.');
+    }
+    ajouterNaime(el, a, true);
+  }
 };
 const nombre = v => parseFloat(String(v).replace(',', '.')) || 0;
 const I = { // frappe en direct (sans tout redessiner, pour garder le clavier ouvert)
@@ -1826,6 +1885,7 @@ const I = { // frappe en direct (sans tout redessiner, pour garder le clavier ou
   'ex-g': el => { UI.extra.g = nombre(el.value); majApercuExtra(); },
   'ex-rec': el => { UI.extra.rec = el.value; majApercuExtra(); },
   'ex-label': el => { UI.extra.label = el.value.trim(); majApercuExtra(); },
+  'pe-naime': el => { const n = norm(el.value); if (n) ajouterNaime(el, Object.values(ING).find(i => norm(i.nom) === n), false); },
   'ex-pts': el => { UI.extra.pts = el.value === '' ? '' : nombre(el.value); majApercuExtra(); }
 };
 /* ---------- Scanner de codes-barres : retour des courses ---------- */
@@ -2295,6 +2355,13 @@ const I_SCAN = {
 
 Object.assign(A, A_SCAN); Object.assign(I, I_SCAN);
 
+function ajouterNaime(el, a, signaler) { // ajoute un aliment à la liste « n'aime pas » d'une personne
+  if (!a) { if (signaler && el.value.trim()) toast('Choisissez un aliment dans la liste.'); return; }
+  const p = personne(el.dataset.p); p.naime = p.naime || [];
+  if (!p.naime.includes(a.id)) p.naime.push(a.id);
+  el.value = ''; sauver(); rendre();
+  toast(`${p.nom} n’aime pas : ${a.nom.toLowerCase()}.`);
+}
 function apercuExtra() { const a = calculExtra(); return a ? `<b>${esc(a.label)}</b> : ${a.pts} point${a.pts > 1 ? 's' : ''}` : 'Complétez les champs ci-dessus.'; }
 function majApercuExtra() { $('#ex-apercu').innerHTML = apercuExtra(); $('#ex-ok').disabled = !calculExtra(); }
 
