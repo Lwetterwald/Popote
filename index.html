@@ -213,6 +213,11 @@ ul.ingr li.off .case-ing{background:transparent}
 ul.ingr li.off .ing-n > span:last-child{text-decoration:line-through;color:var(--doux)}
 .chip.naime{background:var(--terre-clair);border-color:#E8C3B0}
 .ac-liste{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 8px}
+.sync-ico{margin-left:auto;border:1.5px solid var(--ligne);background:#fff;border-radius:999px;padding:4px 12px;font:inherit;font-size:16px;font-weight:700;color:var(--doux);min-height:36px;cursor:pointer;white-space:nowrap}
+.sync-ico[hidden]{display:none}
+.sync-ico.ok{color:var(--vert);border-color:#C7D6B5}
+.sync-ico.erreur{color:var(--rouge);border-color:#E8B5AE}
+.sync-ico.horsligne{color:var(--doux)}
 .ac-liste[hidden]{display:none}
 .ac-item{border:1.5px solid var(--vert);background:#fff;color:var(--vert);border-radius:999px;padding:8px 14px;min-height:44px;font:inherit;font-size:17px;font-weight:600;cursor:pointer;text-align:left}
 .ac-item.ac-tous{background:var(--vert-clair)}
@@ -279,7 +284,7 @@ ul.ingr li.off .ing-n > span:last-child{text-decoration:line-through;color:var(-
 </style>
 </head>
 <body>
-<header class="entete"><h1>Popote</h1><span class="sous" id="sous"></span></header>
+<header class="entete"><h1>Popote</h1><span class="sous" id="sous"></span><button id="sync-ico" class="sync-ico" data-a="syncMaintenant" hidden aria-label="Synchroniser">☁︎</button></header>
 <div id="bandeau"></div>
 <main id="main"></main>
 <nav class="onglets" id="onglets"></nav>
@@ -1798,7 +1803,7 @@ const LECTEUR = (() => {
 <script>
 'use strict';
 /* ================= Popote – application ================= */
-const VERSION = '1.5';
+const VERSION = '1.6';
 const LS_KEY = 'popote_v1';
 const LS_SECOURS = 'popote_v1_avant_import';
 const APERCU = (() => { try { return window.self !== window.top; } catch (e) { return true; } })(); // affiché dans claude.ai
@@ -1859,7 +1864,7 @@ let S;
 function charger() {
   let brut = null;
   try { brut = localStorage.getItem(LS_KEY); } catch (e) { }
-  S = etatInitial();
+  S = completer(etatInitial());
   if (brut) { try { S = completer(JSON.parse(brut)); } catch (e) { console.warn(e); } }
 }
 function completer(o) { // ajoute les champs manquants (versions futures)
@@ -1875,6 +1880,7 @@ function sauver() {
   S.majLe = Date.now();
   try { localStorage.setItem(LS_KEY, JSON.stringify(S)); }
   catch (e) { if (!avertiStockage) { avertiStockage = true; toast('Attention : les données n’ont pas pu être enregistrées sur cet appareil.'); } }
+  if (typeof planifierSync === 'function') planifierSync();
 }
 
 /* ---------- Aliments & recettes ---------- */
@@ -2171,6 +2177,7 @@ function rendre() {
   const vues = { menus: vueMenus, courses: vueCourses, stock: vueStock, recettes: vueRecettes, points: vuePoints, foyer: vueFoyer };
   $('#main').innerHTML = vues[UI.onglet]();
   $('#sous').textContent = cap(fmtDate(auj()));
+  SY.aRafraichir = false; etatSync(SY.etat, SY.msg);
   $('#bandeau').innerHTML = APERCU ? '<div class="info petit" style="margin:8px 14px 0">Aperçu sur claude.ai : les données restent dans ce navigateur. La version à installer sur l’iPad et l’iPhone est celle de GitHub.</div>' : '';
 }
 
@@ -2559,8 +2566,9 @@ function vueFoyer() {
   h += `</div>`;
   h += `<h3>Réglages</h3><div class="carte">
     <label class="switch"><input type="checkbox" data-c="opt-zero" ${S.options.zeroFL ? 'checked' : ''}> Fruits et légumes frais à 0 point (comme Weight Watchers)</label></div>`;
-  h += `<h3>Partager avec l’autre appareil</h3><div class="carte">
-    <p>L’application n’a pas de serveur : chaque appareil (iPad, iPhone) garde ses propres données. Pour que votre femme ait exactement les mêmes menus, la même liste et le même stock :</p>
+  h += `<h3>Synchronisation automatique</h3><div class="carte">${blocSync()}</div>`;
+  h += `<h3>Sauvegarde et envoi par fichier</h3><div class="carte">
+    <p>${syncCfg() ? 'La synchronisation automatique est active : ce qui suit sert surtout de sauvegarde.' : 'Sans synchronisation automatique, chaque appareil (iPad, iPhone) garde ses propres données.'} Pour transmettre toutes les données à l’autre appareil :</p>
     <ol class="etapes"><li>Touchez « Envoyer toutes les données » et choisissez AirDrop, Messages ou Mail.</li><li>Sur son appareil, enregistrez le fichier dans Fichiers.</li><li>Dans son application : Foyer › « Recevoir des données » et choisissez le fichier.</li></ol>
     <div class="actions"><button class="btn pri" data-a="exporter">📤 Envoyer toutes les données</button><button class="btn" data-a="importer">📥 Recevoir des données</button></div>
     <p class="muted petit">Pour la liste de courses seule, utilisez « Envoyer la liste » dans l’onglet Courses.${S.derniereSauvegarde ? ' Dernier envoi : ' + new Date(S.derniereSauvegarde).toLocaleDateString('fr-FR') + '.' : ''} Ce fichier sert aussi de sauvegarde : gardez-en un dans Fichiers de temps en temps.</p>
@@ -2569,6 +2577,7 @@ function vueFoyer() {
     <p><b>Points</b> : estimation avec la formule publique proche des « SmartPoints » de Weight Watchers (calories × 0,0305 + graisses saturées × 0,275 + sucres × 0,12 − protéines × 0,098), sur le total de la recette. Ce ne sont pas les points officiels de l’application WW, mais ils permettent de comparer les repas et de tenir un budget quotidien.</p>
     <p><b>Valeurs nutritionnelles</b> : ordres de grandeur pour 100 g d’aliment cru, du type de la table Ciqual de l’ANSES. Vous pouvez créer vos propres aliments avec les valeurs de l’étiquette.</p>
     <p><b>Cholestérol</b> : le repère par défaut des graisses saturées correspond à environ 7 % des calories de la journée, valeur souvent conseillée en cas de cholestérol élevé. Ajustez-le avec votre médecin. Pastilles : vert ≤ 3 g par portion, orange ≤ 5 g, rouge au-delà.</p>
+    <p><b>Synchronisation</b> : les données partagées sont dans un fichier d’un dépôt GitHub privé. Si les deux appareils changent quelque chose en même temps, les modifications des deux côtés sont fusionnées ; si la même information a été changée des deux côtés, la plus récente l’emporte. Chaque mise à jour reste dans l’historique du dépôt.</p>
     <p><b>Points de la semaine</b> : chaque personne a un budget par jour et une réserve par semaine (par défaut l’équivalent d’une journée), comme chez Weight Watchers. Les dépassements d’une journée sont pris sur la réserve, qui repart à neuf chaque lundi.</p>
     <p><b>Recettes de réception (🎉)</b> : plus riches, pour recevoir sans régime. Elles ne sont jamais proposées automatiquement ; on les choisit soi-même.</p>
     <p><b>Goûts</b> : les recettes qui contiennent un aliment qu’une personne à table n’aime pas ne sont pas proposées automatiquement ; vous pouvez retirer un aliment d’une recette en touchant son nom dans la fiche de la recette.</p>
@@ -3353,6 +3362,234 @@ function ajouterNaime(el, a, signaler) { // ajoute un aliment à la liste « n'a
   el.value = ''; sauver(); rendre();
   toast(`${p.nom} n’aime pas : ${a.nom.toLowerCase()}.`);
 }
+/* ---------- Synchronisation automatique entre appareils (dépôt GitHub privé) ----------
+   Les données partagées sont dans un fichier JSON d'un dépôt privé. Chaque appareil garde
+   la dernière version synchronisée (« base ») : en comparant base, local et en ligne, on sait
+   qui a changé quoi, et on fusionne les modifications des deux côtés sans rien perdre. */
+const LS_SYNC = 'popote_sync', LS_BASE = 'popote_sync_base', SYNC_FICHIER = 'popote-donnees.json';
+const SY = { etat: 'off', msg: '', enCours: false, encore: false, minuteur: null, periodique: null, aRafraichir: false };
+const syncCfg = () => { try { return JSON.parse(localStorage.getItem(LS_SYNC) || 'null'); } catch (e) { return null; } };
+const syncCfgSet = c => { try { if (c) localStorage.setItem(LS_SYNC, JSON.stringify(c)); else localStorage.removeItem(LS_SYNC); } catch (e) { } };
+const lireBase = () => { try { return JSON.parse(localStorage.getItem(LS_BASE) || 'null'); } catch (e) { return null; } };
+const ecrireBase = d => { try { if (d) localStorage.setItem(LS_BASE, JSON.stringify(d)); else localStorage.removeItem(LS_BASE); } catch (e) { } };
+const LOCAL_SEUL = ['scan', 'derniereSauvegarde']; // propres à chaque appareil
+function partageable(o) { const c = JSON.parse(JSON.stringify(o)); for (const k of LOCAL_SEUL) delete c[k]; return c; }
+const enB64 = t => { const o = new TextEncoder().encode(t); let s = ''; for (let i = 0; i < o.length; i += 0x8000) s += String.fromCharCode.apply(null, o.subarray(i, i + 0x8000)); return btoa(s); };
+const deB64 = b => new TextDecoder().decode(Uint8Array.from(atob(b.replace(/\s/g, '')), c => c.charCodeAt(0)));
+
+/* Fusion à trois voies */
+const canon = v => JSON.stringify(v, (k, x) => x && typeof x === 'object' && !Array.isArray(x) ? Object.keys(x).sort().reduce((o, k2) => (o[k2] = x[k2], o), {}) : x);
+const egal = (a, b) => canon(a) === canon(b);
+const estObj = v => !!v && typeof v === 'object' && !Array.isArray(v);
+const avecIds = l => l.every(x => estObj(x) && typeof x.id === 'string');
+function fusion3(b, l, r, prefL) {
+  if (l === undefined && r === undefined) return undefined;
+  if (l === undefined) return b === undefined ? r : egal(b, r) ? undefined : r;   // ajouté en ligne / supprimé ici
+  if (r === undefined) return b === undefined ? l : egal(b, l) ? undefined : l;   // ajouté ici / supprimé en ligne
+  if (egal(l, r)) return l;
+  if (b !== undefined && egal(b, l)) return r;                                     // seul l'autre appareil a changé
+  if (b !== undefined && egal(b, r)) return l;                                     // seul cet appareil a changé
+  if (estObj(l) && estObj(r)) {                                                    // les deux ont changé : clé par clé
+    const bo = estObj(b) ? b : {}, out = {};
+    for (const k of new Set([...Object.keys(l), ...Object.keys(r)])) { const v = fusion3(bo[k], l[k], r[k], prefL); if (v !== undefined) out[k] = v; }
+    return out;
+  }
+  if (Array.isArray(l) && Array.isArray(r)) {
+    if (avecIds(l) && avecIds(r)) {                                                // listes d'éléments identifiés : élément par élément
+      const bm = new Map((Array.isArray(b) ? b : []).filter(estObj).map(x => [x.id, x])), lm = new Map(l.map(x => [x.id, x])), rm = new Map(r.map(x => [x.id, x]));
+      const out = [];
+      for (const id of [...lm.keys(), ...[...rm.keys()].filter(i => !lm.has(i))]) { const v = fusion3(bm.get(id), lm.get(id), rm.get(id), prefL); if (v !== undefined) out.push(v); }
+      return out;
+    }
+    if ([...l, ...r].every(x => x === null || typeof x !== 'object')) {           // listes simples : ajouts et retraits des deux côtés
+      const bs = new Set(Array.isArray(b) ? b : []), ls = new Set(l), rs = new Set(r);
+      const out = l.filter(x => rs.has(x) || !bs.has(x));
+      for (const x of r) if (!ls.has(x) && !bs.has(x)) out.push(x);
+      return out;
+    }
+  }
+  return prefL ? l : r;                                                            // même valeur changée des deux côtés : la plus récente gagne
+}
+
+/* Accès à GitHub */
+async function gh(cfg, chemin, opts) {
+  opts = opts || {};
+  const h = { Authorization: 'Bearer ' + cfg.token, Accept: opts.accept || 'application/vnd.github+json' };
+  if (opts.body) h['Content-Type'] = 'application/json';
+  return fetch('https://api.github.com' + chemin, { method: opts.method || 'GET', cache: 'no-store', headers: h, body: opts.body ? JSON.stringify(opts.body) : undefined });
+}
+const cheminFichier = cfg => `/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}/contents/${SYNC_FICHIER}`;
+function erreurGh(st) {
+  const e = new Error(st === 401 ? 'La clé d’accès est refusée (expirée ou mal copiée).' : st === 403 ? 'GitHub refuse l’accès (droits de la clé, ou trop de demandes : réessayez plus tard).' : st === 404 ? 'Dépôt introuvable, ou la clé n’y a pas accès.' : 'GitHub a répondu une erreur (' + st + ').');
+  e.statut = st; return e;
+}
+async function lireDistant(cfg) {
+  const r = await gh(cfg, cheminFichier(cfg));
+  if (r.status === 404) return { doc: null, sha: null };
+  if (!r.ok) throw erreurGh(r.status);
+  const j = await r.json();
+  let txt;
+  if (j.content && j.encoding === 'base64') txt = deB64(j.content);
+  else { const r2 = await gh(cfg, cheminFichier(cfg), { accept: 'application/vnd.github.raw+json' }); if (!r2.ok) throw erreurGh(r2.status); txt = await r2.text(); }
+  return { doc: JSON.parse(txt), sha: j.sha };
+}
+async function ecrireDistant(cfg, doc, sha) {
+  const body = { message: 'Popote : mise à jour depuis ' + (cfg.appareil || 'un appareil'), content: enB64(JSON.stringify(doc)) };
+  if (sha) body.sha = sha;
+  const r = await gh(cfg, cheminFichier(cfg), { method: 'PUT', body });
+  if (r.status === 409 || r.status === 422) { const e = new Error('conflit'); e.conflit = true; throw e; }
+  if (!r.ok) throw erreurGh(r.status);
+  return (await r.json()).content.sha;
+}
+
+/* Remplacer les données de cet appareil par une version partagée (sans relancer de synchronisation) */
+function appliquerPartage(doc) {
+  const garde = {}; for (const k of LOCAL_SEUL) garde[k] = S[k];
+  S = completer(Object.assign(JSON.parse(JSON.stringify(doc)), garde));
+  reindexer(); majDatalists();
+  try { localStorage.setItem(LS_KEY, JSON.stringify(S)); } catch (e) { }
+  const actif = document.activeElement;
+  if (UI.pile.length || scannerOuvert() || (actif && /INPUT|TEXTAREA|SELECT/.test(actif.tagName))) SY.aRafraichir = true; // ne pas déranger une saisie
+  else rendre();
+}
+function etatSync(etat, msg) {
+  SY.etat = etat; SY.msg = msg || '';
+  const b = $('#sync-ico');
+  if (b) { const c = syncCfg(); b.hidden = !c; b.className = 'sync-ico ' + etat; b.textContent = etat === 'encours' ? '☁︎ …' : etat === 'ok' ? '☁︎ ✓' : etat === 'horsligne' ? '☁︎ ⏸' : etat === 'erreur' ? '☁︎ !' : '☁︎'; }
+  const z = $('#sync-etat'); if (z) z.innerHTML = texteEtatSync();
+}
+function texteEtatSync() {
+  const c = syncCfg(); if (!c) return '';
+  const quand = c.derniere ? ' (dernière synchronisation : ' + new Date(c.derniere).toLocaleString('fr-FR', { weekday: 'short', hour: '2-digit', minute: '2-digit' }) + ')' : '';
+  if (SY.etat === 'encours') return '<span class="muted">Synchronisation en cours…</span>';
+  if (SY.etat === 'horsligne') return '<span class="muted">Pas de connexion : les changements seront envoyés au retour du réseau' + esc(quand) + '.</span>';
+  if (SY.etat === 'erreur') return '<span class="a-faire">' + esc(SY.msg) + '</span>';
+  return '<span style="color:var(--vert);font-weight:600">✓ Synchronisé' + esc(quand) + '</span>';
+}
+function planifierSync(delai) {
+  if (!syncCfg()) return;
+  clearTimeout(SY.minuteur); SY.minuteur = setTimeout(() => synchroniser(), delai === undefined ? 5000 : delai);
+}
+async function synchroniser() {
+  const cfg = syncCfg(); if (!cfg || APERCU) return;
+  if (SY.enCours) { SY.encore = true; return; }
+  if (navigator.onLine === false) { etatSync('horsligne'); return; }
+  SY.enCours = true; etatSync('encours');
+  try {
+    for (let essai = 0; essai < 3; essai++) {
+      const local = partageable(S), dist = await lireDistant(cfg);
+      let fus;
+      if (!dist.doc) fus = local;
+      else {
+        fus = fusion3(lireBase() || undefined, local, dist.doc, (local.majLe || 0) >= (dist.doc.majLe || 0));
+        fus.majLe = Math.max(local.majLe || 0, dist.doc.majLe || 0);
+      }
+      if (S.majLe !== local.majLe) { SY.encore = true; break; }              // modifié pendant la lecture : on recommence juste après
+      if (!egal(fus, local)) appliquerPartage(fus);
+      if (!dist.doc || !egal(fus, dist.doc)) {
+        try { cfg.sha = await ecrireDistant(cfg, fus, dist.sha); }
+        catch (e) { if (e.conflit) continue; throw e; }                      // l'autre appareil a écrit entre-temps : relire et refusionner
+      } else cfg.sha = dist.sha;
+      ecrireBase(fus); cfg.derniere = Date.now(); syncCfgSet(cfg);
+      etatSync('ok');
+      if (SY.aRafraichir && !UI.pile.length && !scannerOuvert() && !/INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName || '')) rendre();
+      break;
+    }
+  } catch (e) {
+    if (e instanceof TypeError || navigator.onLine === false) etatSync('horsligne');
+    else etatSync('erreur', e.message || 'Erreur de synchronisation.');
+  } finally {
+    SY.enCours = false;
+    if (SY.encore) { SY.encore = false; planifierSync(800); }
+  }
+}
+function demarrerSync() {
+  if (!syncCfg() || APERCU) return;
+  etatSync('ok');
+  synchroniser();
+  clearInterval(SY.periodique);
+  SY.periodique = setInterval(() => { if (!document.hidden) synchroniser(); }, 60000);
+}
+
+/* Réglage dans l'onglet Foyer */
+function blocSync() {
+  if (APERCU) return '<p class="muted petit">La synchronisation automatique fonctionne dans l’application installée depuis GitHub, pas dans cet aperçu.</p>';
+  const c = syncCfg();
+  if (!c) return `<p>Avec un dépôt GitHub privé, vos téléphones se mettent à jour tout seuls : menus, liste de courses, stock, recettes et points. Plus besoin d’envoyer ni de recevoir des fichiers.</p>
+    <div class="actions"><button class="btn pri" data-a="syncConfigurer">☁︎ Activer la synchronisation</button></div>`;
+  return `<p class="petit">Dépôt <b>${esc(c.owner)}/${esc(c.repo)}</b> · cet appareil : <b>${esc(c.appareil || '')}</b></p>
+    <p id="sync-etat" class="petit">${texteEtatSync()}</p>
+    <div class="actions"><button class="btn pri" data-a="syncMaintenant">↻ Synchroniser maintenant</button><button class="btn" data-a="syncConfigurer">Modifier</button><button class="btn del" data-a="syncDesactiver">Désactiver sur cet appareil</button></div>`;
+}
+function modaleSync() {
+  const f = UI.syncForm;
+  return `<h2>☁︎ Synchronisation automatique</h2>
+    <p class="petit">Popote enregistre ses données dans un dépôt <b>privé</b> de votre compte GitHub. Chaque appareil reçoit automatiquement les changements de l’autre.</p>
+    <label class="champ"><span>Compte GitHub</span><input type="text" data-i="sy-owner" value="${esc(f.owner)}" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false"></label>
+    <label class="champ"><span>Dépôt privé des données</span><input type="text" data-i="sy-repo" value="${esc(f.repo)}" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false"></label>
+    <label class="champ"><span>Clé d’accès (commence par github_pat_)</span><input type="password" data-i="sy-token" value="${esc(f.token)}" placeholder="Coller la clé ici" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false"></label>
+    <label class="champ"><span>Nom de cet appareil</span><input type="text" data-i="sy-app" value="${esc(f.appareil)}" placeholder="Ex. : iPhone de Laurent"></label>
+    <div id="sy-msg">${f.msg || ''}</div>
+    <div class="actions fin"><button class="btn" data-a="fermer">Annuler</button><button class="btn pri" data-a="syncVerifier" ${f.verif ? 'disabled' : ''}>${f.verif ? 'Vérification…' : 'Vérifier et activer'}</button></div>
+    <details class="petit" style="margin-top:12px"><summary><b>Comment créer le dépôt et la clé ?</b></summary>
+    <ol class="etapes"><li>Sur github.com : <b>+ ▾ › New repository</b>, nom <b>popote-donnees</b>, cochez <b>Private</b> et <b>Add a README file</b>, puis <b>Create repository</b>.</li>
+    <li>Photo de profil › <b>Settings › Developer settings › Personal access tokens › Fine-grained tokens › Generate new token</b>.</li>
+    <li>Nom : Popote. Expiration : la plus longue proposée. <b>Repository access › Only select repositories</b> › popote-donnees.</li>
+    <li><b>Permissions › Repository permissions › Contents › Read and write</b>, puis <b>Generate token</b>. Copiez la clé et collez-la ici (elle ne s’affiche qu’une fois).</li></ol></details>`;
+}
+const appareilParDefaut = () => /iPhone/.test(navigator.userAgent) ? 'iPhone' : /iPad|Macintosh/.test(navigator.userAgent) ? 'iPad' : 'Appareil';
+function donneesVides() { return !Object.keys(S.repas).length && !S.stock.length && !S.recettesPerso.length && !S.courses.items.length; }
+function msgSync(t, ok) { UI.syncForm.msg = `<div class="${ok ? 'info' : 'alerte'} petit">${t}</div>`; UI.syncForm.verif = false; rafraichirModale(); }
+async function verifierSync() {
+  const f = UI.syncForm;
+  const cfg = { owner: f.owner.trim(), repo: f.repo.trim(), token: f.token.trim(), appareil: f.appareil.trim() || appareilParDefaut() };
+  if (!cfg.owner || !cfg.repo || !cfg.token) return msgSync('Remplissez le compte, le dépôt et la clé.');
+  f.verif = true; f.msg = ''; rafraichirModale();
+  try {
+    const r = await gh(cfg, `/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}`);
+    if (!r.ok) throw erreurGh(r.status);
+    const j = await r.json();
+    if (!j.private) return msgSync('Ce dépôt est <b>public</b> : tout le monde pourrait lire vos données. Rendez-le privé (Settings › Danger Zone › Change visibility) puis recommencez.');
+    if (j.permissions && j.permissions.push === false) return msgSync('La clé peut lire ce dépôt mais pas y écrire : donnez-lui la permission <b>Contents › Read and write</b>.');
+    const dist = await lireDistant(cfg);
+    f.verif = false; UI.syncCfgTemp = cfg; UI.syncDist = dist;
+    if (dist.doc && !donneesVides()) { ouvrir(modaleChoixSync); return; }
+    activerSync(cfg, dist.doc ? 'en-ligne' : 'local');
+  } catch (e) {
+    msgSync(e instanceof TypeError ? 'Impossible de joindre GitHub : vérifiez la connexion.' : esc(e.message));
+  }
+}
+function modaleChoixSync() {
+  const d = UI.syncDist.doc, quand = d.majLe ? new Date(d.majLe).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' }) : '?';
+  return `<h2>Des données sont déjà en ligne</h2>
+    <p>Le dépôt contient des données mises à jour le <b>${quand}</b>, et cet appareil a aussi les siennes.</p>
+    <div class="sec"><button class="btn pri large" data-a="syncChoix" data-c="en-ligne">Prendre les données en ligne</button>
+    <p class="muted petit">Conseillé pour le deuxième téléphone : il devient identique au premier. Ses données actuelles sont gardées en secours.</p></div>
+    <div class="sec"><button class="btn large" data-a="syncChoix" data-c="fusion">Fusionner avec les miennes</button>
+    <p class="muted petit">Garde les menus, recettes, stock et points des deux côtés.</p></div>`;
+}
+function activerSync(cfg, mode) {
+  if (mode === 'en-ligne' && UI.syncDist && UI.syncDist.doc) {
+    try { localStorage.setItem(LS_SECOURS, JSON.stringify(S)); } catch (e) { }
+    appliquerPartage(UI.syncDist.doc); ecrireBase(UI.syncDist.doc);
+  } else ecrireBase(null); // fusion (ou premier envoi)
+  cfg.derniere = null; syncCfgSet(cfg);
+  UI.pile = []; dessinerModale(); rendre();
+  toast('Synchronisation activée sur cet appareil.');
+  demarrerSync();
+}
+Object.assign(A, {
+  syncConfigurer: () => { const c = syncCfg() || {}; UI.syncForm = { owner: c.owner || 'Lwetterwald', repo: c.repo || 'popote-donnees', token: c.token || '', appareil: c.appareil || appareilParDefaut(), msg: '', verif: false }; ouvrir(modaleSync); },
+  syncVerifier: () => verifierSync(),
+  syncChoix: el => activerSync(UI.syncCfgTemp, el.dataset.c),
+  syncMaintenant: () => { if (!syncCfg()) { UI.onglet = 'foyer'; rendre(); return; } synchroniser(); },
+  syncDesactiver: () => confirmer('Désactiver la synchronisation sur cet appareil ? Ses données restent sur l’appareil ; celles en ligne ne sont pas effacées.', 'Désactiver', () => { syncCfgSet(null); ecrireBase(null); clearInterval(SY.periodique); etatSync('off'); }, true)
+});
+Object.assign(I, {
+  'sy-owner': el => { UI.syncForm.owner = el.value; }, 'sy-repo': el => { UI.syncForm.repo = el.value; },
+  'sy-token': el => { UI.syncForm.token = el.value; }, 'sy-app': el => { UI.syncForm.appareil = el.value; }
+});
+
 /* ---------- Suggestions sous les cases « aliment » et « recette » ----------
    La liste intégrée au navigateur est absente ou capricieuse sur iPad et iPhone :
    on affiche nos propres boutons, avec « Créer l'aliment » quand il n'existe pas. */
@@ -3446,6 +3683,9 @@ function demarrer() {
     if (!tr || tr.readyState === 'ended') demarrerCamera();
   });
   rendre();
+  demarrerSync();
+  window.addEventListener('online', () => synchroniser());
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) synchroniser(); });
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     try { navigator.serviceWorker.register('sw.js').catch(() => { }); } catch (e) { }
   }
