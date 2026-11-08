@@ -212,6 +212,12 @@ ul.ingr li .case-ing{flex:0 0 26px;height:26px;border:2.5px solid var(--vert);bo
 ul.ingr li.off .case-ing{background:transparent}
 ul.ingr li.off .ing-n > span:last-child{text-decoration:line-through;color:var(--doux)}
 .chip.naime{background:var(--terre-clair);border-color:#E8C3B0}
+.ac-liste{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 8px}
+.ac-liste[hidden]{display:none}
+.ac-item{border:1.5px solid var(--vert);background:#fff;color:var(--vert);border-radius:999px;padding:8px 14px;min-height:44px;font:inherit;font-size:17px;font-weight:600;cursor:pointer;text-align:left}
+.ac-item.ac-tous{background:var(--vert-clair)}
+.ac-item.ac-creer{border-style:dashed;border-color:var(--terre);color:var(--terre)}
+.ac-plus{width:100%;font-size:15px;color:var(--doux)}
 .rec.fete{box-shadow:inset 5px 0 0 #9B5BB0,var(--ombre)}
 .badge.fete{background:#F1E4F7;color:#6E3A86}
 .fete-info{background:#F6ECFA;border-radius:12px;padding:12px 14px;margin:10px 0;font-size:16px;color:#4d2a5c}
@@ -1792,7 +1798,7 @@ const LECTEUR = (() => {
 <script>
 'use strict';
 /* ================= Popote – application ================= */
-const VERSION = '1.4';
+const VERSION = '1.5';
 const LS_KEY = 'popote_v1';
 const LS_SECOURS = 'popote_v1_avant_import';
 const APERCU = (() => { try { return window.self !== window.top; } catch (e) { return true; } })(); // affiché dans claude.ai
@@ -2354,7 +2360,7 @@ function modaleEditeur() {
     <p class="muted petit">Choisissez l’aliment dans la liste, puis le poids en grammes (ou ml) pour une personne.</p>`;
   r.i.forEach(([id, g], k) => {
     const nom = ING[id] ? ING[id].nom : (id || '');
-    h += `<div class="ing-ligne"><input type="text" list="dl-ingr" data-c="ed-ing" data-k="${k}" value="${esc(nom)}" placeholder="Aliment"><input type="number" min="0" step="any" inputmode="decimal" data-i="ed-g" data-k="${k}" value="${g || ''}" placeholder="g"><button class="btn ic del" data-a="edRetirerIng" data-k="${k}">✕</button></div>
+    h += `<div class="ing-ligne"><input type="text" data-ac="ing" autocomplete="off" data-c="ed-ing" data-k="${k}" value="${esc(nom)}" placeholder="Aliment"><input type="number" min="0" step="any" inputmode="decimal" data-i="ed-g" data-k="${k}" value="${g || ''}" placeholder="g"><button class="btn ic del" data-a="edRetirerIng" data-k="${k}">✕</button></div>
       <div id="ed-w-${k}">${avertIng(id)}</div>`;
   });
   h += `<div class="actions"><button class="btn" data-a="edAjouterIng">＋ Ingrédient</button><button class="btn" data-a="nouvelAliment">＋ Nouvel aliment</button></div>
@@ -2372,6 +2378,7 @@ function modaleAliment() {
     <label class="champ"><span>S’achète</span><select data-c="al-u"><option value="g" ${a.u === 'g' ? 'selected' : ''}>au poids (g)</option><option value="ml" ${a.u === 'ml' ? 'selected' : ''}>en volume (ml)</option><option value="pc" ${a.u === 'pc' ? 'selected' : ''}>à la pièce</option></select></label></div>
     ${a.u === 'pc' ? `<label class="champ"><span>Poids d’une pièce (g)</span><input type="number" min="1" data-c="al-pc" value="${a.pc || 100}"></label>` : ''}
     <div class="lbl" style="margin-top:12px">Valeurs pour 100 g (étiquette ou table Ciqual)</div>
+    <p class="muted petit" style="margin:0 0 6px">Facultatif : elles servent seulement au calcul des points quand l’aliment est utilisé dans une recette. Pour noter un aliment que quelqu’un n’aime pas, le nom suffit.</p>
     <div class="grille3">${champ(0, 'Calories (kcal)', a.n[0])}${champ(1, 'Protéines (g)', a.n[1])}${champ(2, 'dont saturés (g)', a.n[2])}${champ(3, 'Sucres (g)', a.n[3])}${champ(4, 'Fibres (g)', a.n[4])}${champ(5, 'Cholestérol (mg)', a.n[5])}</div>
     <label class="switch"><input type="checkbox" data-c="al-z" ${a.z ? 'checked' : ''}> Fruit ou légume frais (0 point)</label>
     <div class="actions fin"><button class="btn" data-a="fermer">Annuler</button><button class="btn pri" data-a="alEnregistrer">Enregistrer l’aliment</button></div>`;
@@ -2391,7 +2398,7 @@ function vueCourses() {
   }
   if (c.deja && c.deja.length) h += `<p class="muted petit" style="margin-top:14px">Déjà en stock, non ajouté : ${c.deja.map(id => ING[id] ? ING[id].nom : id).join(', ')}.</p>`;
   h += `<div class="carte"><div class="lbl">Ajouter un article</div>
-    <div class="ing-ligne" style="grid-template-columns:1fr 1fr"><input type="text" id="m-nom" list="dl-ingr" placeholder="Ex. : café, papier toilette…"><input type="text" id="m-qte" placeholder="Quantité (facultatif)"></div>
+    <div class="ing-ligne" style="grid-template-columns:1fr 1fr"><input type="text" id="m-nom" data-ac="ing" autocomplete="off" placeholder="Ex. : café, papier toilette…"><input type="text" id="m-qte" placeholder="Quantité (facultatif)"></div>
     <div class="ligne"><select id="m-r">${RAYON_ORDRE.map(r => `<option value="${r}" ${r === 'dv' ? 'selected' : ''}>${RAYONS[r]}</option>`).join('')}</select><button class="btn pri" data-a="ajouterArticle">Ajouter</button></div></div>`;
   if (c.items.length) h += `<div class="actions"><button class="btn pri" data-a="scanOuvrir">📷 Scanner les achats au retour</button><button class="btn" data-a="partagerListe">📤 Envoyer la liste</button><button class="btn" data-a="imprimerListe">🖨 Imprimer</button>
     <button class="btn" data-a="rangerCoches">🧺 Ranger les articles cochés dans le stock</button><button class="btn" data-a="effacerCoches">Effacer les cochés</button><button class="btn del" data-a="viderListe">Tout effacer</button></div>`;
@@ -2424,7 +2431,7 @@ function noteStock(e) { return !e.ing && e.nom ? 'Cet article n’est pas dans l
 function modaleStock() {
   const e = UI.stockEdit; const i = ING[e.ing];
   return `<h2>${e.id ? 'Modifier' : 'Ajouter au stock'}</h2>
-    <div class="champ"><span>Aliment</span><input type="text" list="dl-ingr" data-i="st-nom" value="${esc(i ? i.nom : e.nom || '')}" placeholder="Choisir dans la liste"></div>
+    <div class="champ"><span>Aliment</span><input type="text" data-ac="ing" autocomplete="off" data-i="st-nom" value="${esc(i ? i.nom : e.nom || '')}" placeholder="Choisir dans la liste"></div>
     <div class="grille2"><label class="champ"><span>Quantité <span id="st-unite" class="muted">${e.ing ? '(' + uniteSaisie(e.ing) + ')' : ''}</span></span><input type="number" min="0" step="any" inputmode="decimal" data-i="st-q" value="${e.q || ''}"></label>
     <label class="champ"><span>Où ?</span><select id="st-lieu" data-i="st-lieu">${Object.entries(LIEUX).map(([k, l]) => `<option value="${k}" ${e.lieu === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label></div>
     <label class="champ"><span>À consommer avant (facultatif)</span><input type="date" data-i="st-dlc" value="${e.dlc || ''}"></label>
@@ -2500,8 +2507,8 @@ function modaleExtra() {
   let apercu = calculExtra();
   return `<h2>Ajouter pour ${esc(p.nom)}</h2>
     <div class="chips">${[['aliment', 'Un aliment'], ['recette', 'Une recette'], ['points', 'Des points']].map(([k, l]) => `<button class="chip ${x.mode === k ? 'on' : ''}" data-a="exMode" data-m="${k}">${l}</button>`).join('')}</div>
-    ${x.mode === 'aliment' ? `<div class="champ"><span>Aliment</span><input type="text" list="dl-ingr" data-i="ex-nom" value="${esc(x.nom)}" placeholder="Ex. : pain complet"></div><div class="champ"><span>Quantité (g ou ml)</span><input type="number" min="0" step="any" inputmode="decimal" data-i="ex-g" value="${x.g || ''}"></div>` : ''}
-    ${x.mode === 'recette' ? `<div class="champ"><span>Recette</span><input type="text" list="dl-rec" data-i="ex-rec" value="${esc(x.rec)}"></div><div class="champ"><span>Portion</span><div class="chips">${[0.5, 0.75, 1, 1.5].map(v => `<button class="chip ${x.coef === v ? 'on' : ''}" data-a="exCoef" data-v="${v}">× ${nb(v, 2)}</button>`).join('')}</div></div>` : ''}
+    ${x.mode === 'aliment' ? `<div class="champ"><span>Aliment</span><input type="text" data-ac="ing" autocomplete="off" data-i="ex-nom" value="${esc(x.nom)}" placeholder="Ex. : pain complet"></div><div class="champ"><span>Quantité (g ou ml)</span><input type="number" min="0" step="any" inputmode="decimal" data-i="ex-g" value="${x.g || ''}"></div>` : ''}
+    ${x.mode === 'recette' ? `<div class="champ"><span>Recette</span><input type="text" data-ac="rec" autocomplete="off" data-i="ex-rec" value="${esc(x.rec)}"></div><div class="champ"><span>Portion</span><div class="chips">${[0.5, 0.75, 1, 1.5].map(v => `<button class="chip ${x.coef === v ? 'on' : ''}" data-a="exCoef" data-v="${v}">× ${nb(v, 2)}</button>`).join('')}</div></div>` : ''}
     ${x.mode === 'points' ? `<div class="champ"><span>Description</span><input type="text" data-i="ex-label" value="${esc(x.label)}" placeholder="Ex. : petit-déjeuner habituel"></div><div class="champ"><span>Points</span><input type="number" min="0" inputmode="numeric" data-i="ex-pts" value="${x.pts === '' ? '' : x.pts}"></div>` : ''}
     <div class="info" id="ex-apercu">${apercuExtra()}</div>
     <div class="actions fin"><button class="btn" data-a="fermer">Annuler</button><button class="btn pri" id="ex-ok" data-a="validerExtra" ${apercu ? '' : 'disabled'}>Ajouter</button></div>`;
@@ -2535,7 +2542,7 @@ function vueFoyer() {
       <label class="champ"><span>Repère graisses saturées (g/jour)</span><input type="number" min="0" inputmode="numeric" data-c="pe-ags" data-p="${p.id}" value="${p.agsMax}"></label></div>` : ''}
       <div class="champ"><span>N’aime pas</span>
         ${(p.naime || []).length ? `<div class="chips">${p.naime.map(id => `<button class="chip naime" data-a="retirerNaime" data-p="${p.id}" data-i="${esc(id)}">${esc(ING[id] ? ING[id].nom : id)} ✕</button>`).join('')}</div>` : '<span class="muted petit">Rien pour l’instant.</span>'}
-        <input type="text" list="dl-ingr" data-c="pe-naime" data-i="pe-naime" data-p="${p.id}" placeholder="＋ Ajouter un aliment (ex. : fenouil)" autocomplete="off"></div>
+        <input type="text" data-ac="ing" data-ac-tous="1" data-c="pe-naime" data-i="pe-naime" data-p="${p.id}" placeholder="＋ Ajouter un aliment (ex. : fenouil)" autocomplete="off"></div>
       ${S.personnes.length > 1 ? `<div class="actions fin" style="margin-top:4px"><button class="btn del petit" data-a="supprPersonne" data-p="${p.id}">Retirer cette personne</button></div>` : ''}</div>`;
   }
   h += `<div class="actions"><button class="btn" data-a="ajoutPersonne">＋ Ajouter une personne</button></div>`;
@@ -2653,13 +2660,17 @@ const A = {
   alEnregistrer: () => {
     const a = UI.aliment;
     if (!a.nom.trim()) return toast('Donnez un nom à l’aliment.');
-    if (alimentParNom(a.nom)) return toast('Cet aliment existe déjà.');
+    const nn = norm(a.nom); if (Object.values(ING).some(i => norm(i.nom) === nn || sing(norm(i.nom)) === sing(nn))) return toast('Cet aliment existe déjà.');
     const nouv = { id: 'ip_' + uid(), nom: a.nom.trim(), r: a.r, n: a.n.map(Number), u: a.u };
     if (a.u === 'pc') nouv.pc = Number(a.pc) || 100;
     if (a.z) nouv.z = 1;
     S.ingrPerso.push(nouv); reindexer(); majDatalists(); sauver();
     if (UI.edit) UI.edit.i = UI.edit.i.map(([id, g]) => [String(id).toLowerCase() === nouv.nom.toLowerCase() ? nouv.id : id, g]);
-    UI.pile.pop(); dessinerModale(); toast('Aliment ajouté.');
+    UI.pile.pop(); dessinerModale(); toast('Aliment ajouté : ' + nouv.nom + '.');
+    if (UI.acSel) { // remettre le nouvel aliment dans la case d'où il a été créé
+      const t = document.querySelector(UI.acSel); UI.acSel = null;
+      if (t) { t.value = nouv.nom; t._acChoisi = nouv.nom; t.dispatchEvent(new Event('input', { bubbles: true })); t.dispatchEvent(new Event('change', { bubbles: true })); }
+    }
   },
   // Courses
   genererListe: () => {
@@ -2843,9 +2854,8 @@ const C = {
     if (!a) { // « maquereau » → « Filet de maquereau frais »
       const n = norm(el.value), c = n.length >= 3 ? Object.values(ING).filter(i => norm(i.nom).includes(n)) : [];
       if (c.length === 1) a = c[0];
-      else if (c.length > 1) return toast('Plusieurs aliments correspondent : ' + c.slice(0, 4).map(i => i.nom).join(', ') + (c.length > 4 ? '…' : '') + '. Choisissez dans la liste.');
     }
-    ajouterNaime(el, a, true);
+    ajouterNaime(el, a, false); // sinon : les propositions au-dessus de la case permettent de choisir ou de créer
   }
 };
 const nombre = v => parseFloat(String(v).replace(',', '.')) || 0;
@@ -3239,7 +3249,7 @@ function modaleArticleScan() {
   if (it.etat === 'inconnu') h += `<div class="info petit">Ce code n’est pas dans la base Open Food Facts. Choisissez l’aliment correspondant, ou « Ne pas ranger » s’il ne s’agit pas de nourriture : ce choix sera retenu.</div>`;
   if (it.etat === 'magasin') h += `<div class="info petit">Étiquette du magasin (produit pesé) : choisissez l’aliment et indiquez le poids. L’aliment sera retenu pour la prochaine fois.</div>`;
   h += `<div class="chips" style="margin:12px 0">${[['aliment', 'Ranger comme aliment'], ['memo', 'Pour mémoire'], ['ignorer', 'Ne pas ranger']].map(([k, l]) => `<button class="chip ${it.choix === k ? 'on' : ''}" data-a="scanChoix" data-c="${k}">${l}</button>`).join('')}</div>`;
-  if (it.choix === 'aliment') h += `<div class="sec"><label class="champ"><span>Aliment de vos recettes</span><input type="text" list="dl-ingr" data-i="sc-ing" value="${esc(i ? i.nom : '')}" placeholder="Choisir dans la liste"></label>
+  if (it.choix === 'aliment') h += `<div class="sec"><label class="champ"><span>Aliment de vos recettes</span><input type="text" data-ac="ing" autocomplete="off" data-i="sc-ing" value="${esc(i ? i.nom : '')}" placeholder="Choisir dans la liste"></label>
       <div id="sc-note" class="petit">${noteIngScan(it)}</div>
       <label class="champ"><span id="sc-q-lbl">${libQteScan(it)}</span><input type="number" min="0" step="any" inputmode="decimal" id="sc-q" data-i="sc-q" value="${valQteScan(it)}"></label>
       <p class="petit" id="sc-total">${totalScan(it)}</p></div>`;
@@ -3343,6 +3353,61 @@ function ajouterNaime(el, a, signaler) { // ajoute un aliment à la liste « n'a
   el.value = ''; sauver(); rendre();
   toast(`${p.nom} n’aime pas : ${a.nom.toLowerCase()}.`);
 }
+/* ---------- Suggestions sous les cases « aliment » et « recette » ----------
+   La liste intégrée au navigateur est absente ou capricieuse sur iPad et iPhone :
+   on affiche nos propres boutons, avec « Créer l'aliment » quand il n'existe pas. */
+function candidatsAliments(q) {
+  const n = norm(q); if (!n) return [];
+  const l = [];
+  for (const a of Object.values(ING)) {
+    const t = norm(a.nom);
+    const sc = t === n ? 0 : t.startsWith(n) ? 1 : t.split(/[\s\-’'(),]+/).some(m => m.startsWith(n)) ? 2 : t.includes(n) ? 3 : -1;
+    if (sc >= 0) l.push([sc, a]);
+  }
+  return l.sort((x, y) => x[0] - y[0] || x[1].nom.localeCompare(y[1].nom, 'fr')).map(x => x[1]);
+}
+function candidatsRecettes(q) {
+  const n = norm(q); if (!n) return [];
+  return toutesRecettes().filter(r => norm(r.nom).includes(n)).sort((a, b) => norm(a.nom).indexOf(n) - norm(b.nom).indexOf(n) || a.nom.localeCompare(b.nom, 'fr'));
+}
+function majSuggestions(el) {
+  let box = el._ac;
+  if (!box || !box.isConnected) {
+    box = document.createElement('div'); box.className = 'ac-liste'; box._input = el; el._ac = box;
+    const p = el.parentNode;
+    if (/\b(ing-ligne|grille2|grille3)\b/.test(p.className)) p.parentNode.insertBefore(box, p.nextSibling); // sous la ligne
+    else p.insertBefore(box, el);                                                                           // au-dessus de la case (visible avec le clavier)
+  }
+  const q = el.value.trim();
+  if (!q || el._acChoisi === el.value) { box.hidden = true; box.innerHTML = ''; return; }
+  el._acChoisi = null;
+  const fete = el.dataset.ac === 'rec', c = fete ? candidatsRecettes(q) : candidatsAliments(q);
+  const exact = c.some(x => norm(x.nom) === norm(q));
+  let h = c.slice(0, 8).map(x => `<button type="button" class="ac-item" data-a="acChoisir" data-nom="${esc(x.nom)}">${esc(x.nom)}</button>`).join('');
+  if (c.length > 8) h += `<div class="ac-plus">… et ${c.length - 8} autres : tapez quelques lettres de plus.</div>`;
+  if (!fete && el.dataset.acTous && !exact && c.length > 1 && c.length <= 6) h += `<button type="button" class="ac-item ac-tous" data-a="acTous">Tous ces aliments (${c.length})</button>`;
+  if (!fete && !exact) h += `<button type="button" class="ac-item ac-creer" data-a="acCreer" data-nom="${esc(q)}">＋ Créer l’aliment « ${esc(cap(q))} »</button>`;
+  if (fete && !c.length) h = '<div class="ac-plus">Aucune recette de ce nom.</div>';
+  box.innerHTML = h; box.hidden = !h;
+}
+const selecteurDe = el => el.id ? '#' + el.id : ['c', 'i', 'p', 'k'].filter(k => el.dataset[k] !== undefined).map(k => `[data-${k}="${el.dataset[k]}"]`).join('');
+Object.assign(A, {
+  acChoisir: el => {
+    const box = el.closest('.ac-liste'), inp = box && box._input; if (!inp) return;
+    inp.value = el.dataset.nom; inp._acChoisi = inp.value; box.hidden = true; box.innerHTML = '';
+    inp.dispatchEvent(new Event('input', { bubbles: true })); inp.dispatchEvent(new Event('change', { bubbles: true }));
+  },
+  acTous: el => { // « n'aime pas » : tous les aliments correspondants d'un coup (ex. céleri branche et céleri-rave)
+    const inp = el.closest('.ac-liste')._input, p = personne(inp.dataset.p), l = candidatsAliments(inp.value);
+    p.naime = p.naime || []; for (const a of l) if (!p.naime.includes(a.id)) p.naime.push(a.id);
+    sauver(); rendre(); toast(`${p.nom} n’aime pas : ${l.map(a => a.nom.toLowerCase()).join(', ')}.`);
+  },
+  acCreer: el => {
+    const inp = el.closest('.ac-liste')._input; UI.acSel = selecteurDe(inp);
+    UI.aliment = { nom: cap(el.dataset.nom), r: 'fl', u: 'g', pc: 100, n: [0, 0, 0, 0, 0, 0], z: false };
+    ouvrir(modaleAliment);
+  }
+});
 function apercuExtra() { const a = calculExtra(); return a ? `<b>${esc(a.label)}</b> : ${a.pts} point${a.pts > 1 ? 's' : ''}` : 'Complétez les champs ci-dessus.'; }
 function majApercuExtra() { $('#ex-apercu').innerHTML = apercuExtra(); $('#ex-ok').disabled = !calculExtra(); }
 
@@ -3356,7 +3421,8 @@ function demarrer() {
   });
   $('#voile').addEventListener('click', ev => { if (ev.target.id === 'voile') fermer(); });
   document.addEventListener('change', ev => { const el = ev.target; if (!el.dataset) return; if (el.dataset.c && C[el.dataset.c]) C[el.dataset.c](el); else if (el.dataset.i && I[el.dataset.i] && (el.tagName === 'SELECT' || el.type === 'date')) I[el.dataset.i](el); });
-  document.addEventListener('input', ev => { const el = ev.target; if (el.dataset && el.dataset.i && I[el.dataset.i]) I[el.dataset.i](el); });
+  document.addEventListener('input', ev => { const el = ev.target; if (el.dataset && el.dataset.i && I[el.dataset.i]) I[el.dataset.i](el); if (el.dataset && el.dataset.ac && el.isConnected) majSuggestions(el); });
+  document.addEventListener('focusin', ev => { const el = ev.target; if (el.dataset && el.dataset.ac && el.value.trim()) majSuggestions(el); });
   document.addEventListener('change', ev => {
     if (ev.target.id !== 'fichier-import') return;
     const f = ev.target.files[0]; ev.target.value = ''; if (!f) return;
